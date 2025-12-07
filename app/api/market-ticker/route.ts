@@ -1,5 +1,17 @@
 import { NextResponse } from "next/server";
 
+// Define types for the NSE API response
+interface NSEIndexItem {
+  index: string;
+  last: string;
+  change: string;
+  pChange: string;
+  previousClose: string;
+}
+
+// Define the keys for our indices map
+type IndexKey = 'NIFTY 50' | 'NIFTY BANK' | 'NIFTY MIDCAP 100' | 'NIFTY FINANCIAL SERVICES';
+
 // Function to fetch Indian indices with proper error handling
 async function fetchIndianIndices() {
   try {
@@ -19,17 +31,26 @@ async function fetchIndianIndices() {
     
     const data = await res.json();
     
-    // Map NSE indices
-    const indicesMap = {
+    // Map NSE indices with proper typing
+    const indicesMap: Record<IndexKey, string> = {
       'NIFTY 50': 'NSE:NIFTY',
       'NIFTY BANK': 'NSE:BANKNIFTY',
       'NIFTY MIDCAP 100': 'NSE:MIDCPNIFTY',
       'NIFTY FINANCIAL SERVICES': 'NSE:FINNIFTY',
     };
     
-    return data.data
-      .filter((item: any) => indicesMap[item.index])
-      .map((item: any) => {
+    // Cast the data to have proper typing
+    const items = data.data as NSEIndexItem[];
+    
+    return items
+      .filter((item: NSEIndexItem) => {
+        // Type guard to check if item.index is a valid key
+        return item.index in indicesMap;
+      })
+      .map((item: NSEIndexItem) => {
+        // Type assertion since we've already filtered
+        const indexKey = item.index as IndexKey;
+        
         // Get current price
         const price = parseFloat(item.last) || 0;
         
@@ -59,7 +80,7 @@ async function fetchIndianIndices() {
         if (isNaN(percent)) percent = 0;
         
         return {
-          symbol: indicesMap[item.index],
+          symbol: indicesMap[indexKey],
           price: price,
           change: parseFloat(change.toFixed(2)),
           percent: parseFloat(percent.toFixed(2)),
@@ -113,7 +134,7 @@ async function fetchSensex() {
 // Function to fetch cryptocurrencies
 async function fetchCrypto() {
   try {
-    const cryptoMap = {
+    const cryptoMap: Record<string, string> = {
       'BTC-USD': 'CRYPTO:BTCUSD',
       'ETH-USD': 'CRYPTO:ETHUSD',
       'SOL-USD': 'CRYPTO:SOLUSD',
@@ -159,7 +180,7 @@ async function fetchCrypto() {
 async function fetchCommodities() {
   try {
     // Try using Yahoo Finance for commodity futures
-    const commoditySymbols = {
+    const commoditySymbols: Record<string, string> = {
       'GC=F': 'MCX:GOLD1!',
       'SI=F': 'MCX:SILVER1!',
       'CL=F': 'MCX:CRUDEOIL1!',
@@ -306,6 +327,26 @@ async function fetchTradingView() {
   }
 }
 
+// Define interface for ticker items
+interface TickerItem {
+  symbol: string;
+  price: number;
+  change: number;
+  percent: number;
+  valid: boolean;
+  source: string;
+}
+
+// Define type for fallback data
+type FallbackDataKey = 'NSE:NIFTY' | 'NSE:BANKNIFTY' | 'BSE:SENSEX' | 'NSE:MIDCPNIFTY' | 'NSE:FINNIFTY' | 
+                       'MCX:GOLD1!' | 'MCX:SILVER1!' | 'MCX:CRUDEOIL1!' | 'CRYPTO:BTCUSD' | 'CRYPTO:ETHUSD' | 'CRYPTO:SOLUSD';
+
+interface FallbackData {
+  price: number;
+  change: number;
+  percent: number;
+}
+
 export async function GET() {
   try {
     console.log("Starting market data fetch...");
@@ -325,16 +366,16 @@ export async function GET() {
       ]);
 
       // Combine all results
-      const allResults = [
-        ...(tradingViewData.status === 'fulfilled' ? tradingViewData.value : []),
-        ...(indianIndices.status === 'fulfilled' ? indianIndices.value : []),
-        ...(sensex.status === 'fulfilled' ? sensex.value : []),
-        ...(crypto.status === 'fulfilled' ? crypto.value : []),
-        ...(commodities.status === 'fulfilled' ? commodities.value : []),
+      const allResults: TickerItem[] = [
+        ...(tradingViewData.status === 'fulfilled' ? tradingViewData.value as TickerItem[] : []),
+        ...(indianIndices.status === 'fulfilled' ? indianIndices.value as TickerItem[] : []),
+        ...(sensex.status === 'fulfilled' ? sensex.value as TickerItem[] : []),
+        ...(crypto.status === 'fulfilled' ? crypto.value as TickerItem[] : []),
+        ...(commodities.status === 'fulfilled' ? commodities.value as TickerItem[] : []),
       ];
 
       // Group by symbol and pick the best data
-      const symbolData = new Map();
+      const symbolData = new Map<string, TickerItem>();
       
       allResults.forEach(item => {
         if (!item.valid || item.price === 0) return;
@@ -353,10 +394,10 @@ export async function GET() {
       return Array.from(symbolData.values());
     };
 
-    const results = await Promise.race([fetchData(), timeoutPromise]) as any[];
+    const results = await Promise.race([fetchData(), timeoutPromise]) as TickerItem[];
 
     // Ensure we have realistic data for all required symbols
-    const requiredSymbols = [
+    const requiredSymbols: FallbackDataKey[] = [
       'NSE:NIFTY',
       'NSE:BANKNIFTY',
       'BSE:SENSEX',
@@ -370,27 +411,26 @@ export async function GET() {
       'CRYPTO:SOLUSD',
     ];
 
+    const fallbackData: Record<FallbackDataKey, FallbackData> = {
+      'NSE:NIFTY': { price: 26186.45, change: 150.50, percent: 0.58 },
+      'NSE:BANKNIFTY': { price: 59777.20, change: 350.75, percent: 0.59 },
+      'BSE:SENSEX': { price: 86500.80, change: 500.25, percent: 0.58 },
+      'NSE:MIDCPNIFTY': { price: 60594.60, change: 200.40, percent: 0.33 },
+      'NSE:FINNIFTY': { price: 27881.90, change: 120.30, percent: 0.43 },
+      'MCX:GOLD1!': { price: 62250.00, change: 150.00, percent: 0.24 },
+      'MCX:SILVER1!': { price: 71500.00, change: 200.00, percent: 0.28 },
+      'MCX:CRUDEOIL1!': { price: 6500.00, change: -50.00, percent: -0.76 },
+      'CRYPTO:BTCUSD': { price: 62000.45, change: 1250.30, percent: 2.05 },
+      'CRYPTO:ETHUSD': { price: 3500.60, change: 85.40, percent: 2.50 },
+      'CRYPTO:SOLUSD': { price: 180.25, change: 5.75, percent: 3.30 },
+    };
+
     const finalResults = requiredSymbols.map(symbol => {
       const found = results.find(item => item.symbol === symbol);
       
       if (found) return found;
       
-      // Generate realistic fallback data
-      const fallbackData = {
-        'NSE:NIFTY': { price: 26186.45, change: 150.50, percent: 0.58 },
-        'NSE:BANKNIFTY': { price: 59777.20, change: 350.75, percent: 0.59 },
-        'BSE:SENSEX': { price: 86500.80, change: 500.25, percent: 0.58 },
-        'NSE:MIDCPNIFTY': { price: 60594.60, change: 200.40, percent: 0.33 },
-        'NSE:FINNIFTY': { price: 27881.90, change: 120.30, percent: 0.43 },
-        'MCX:GOLD1!': { price: 62250.00, change: 150.00, percent: 0.24 },
-        'MCX:SILVER1!': { price: 71500.00, change: 200.00, percent: 0.28 },
-        'MCX:CRUDEOIL1!': { price: 6500.00, change: -50.00, percent: -0.76 },
-        'CRYPTO:BTCUSD': { price: 62000.45, change: 1250.30, percent: 2.05 },
-        'CRYPTO:ETHUSD': { price: 3500.60, change: 85.40, percent: 2.50 },
-        'CRYPTO:SOLUSD': { price: 180.25, change: 5.75, percent: 3.30 },
-      };
-
-      const data = fallbackData[symbol] || { price: 10000, change: 100, percent: 1.0 };
+      const data = fallbackData[symbol];
       
       // Add small random variation to make it look real
       const variation = 1 + (Math.random() - 0.5) * 0.02; // ±1%
@@ -402,7 +442,7 @@ export async function GET() {
         percent: parseFloat((data.percent * variation).toFixed(2)),
         valid: true,
         source: 'enhanced_fallback',
-      };
+      } as TickerItem;
     });
 
     console.log(`Market Ticker Fetched: ${finalResults.length} items`);
@@ -418,7 +458,7 @@ export async function GET() {
     console.error("Market Ticker Error:", err);
     
     // Return enhanced fallback data with realistic variations
-    const fallbackData = [
+    const fallbackData: TickerItem[] = [
       { symbol: "NSE:NIFTY", price: 26186.45, change: 150.50, percent: 0.58, valid: true, source: "fallback" },
       { symbol: "NSE:BANKNIFTY", price: 59777.20, change: 350.75, percent: 0.59, valid: true, source: "fallback" },
       { symbol: "BSE:SENSEX", price: 86500.80, change: 500.25, percent: 0.58, valid: true, source: "fallback" },

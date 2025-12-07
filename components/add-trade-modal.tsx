@@ -27,7 +27,7 @@ const defaultQuantities: Record<string, number> = {
   SILVER: 30,
 };
 
-export function AddTradeModal({ open, onOpenChange }) {
+export function AddTradeModal({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const [activeTab, setActiveTab] = useState<"general" | "psychology">("general");
 
   // ---------- FORM STATES (MAIN FIX) ----------
@@ -50,7 +50,7 @@ export function AddTradeModal({ open, onOpenChange }) {
   const [selectedMistakes, setSelectedMistakes] = useState(["No Mistakes"]);
 
   // Strategy
-  const [strategies, setStrategies] = useState([]);
+  const [strategies, setStrategies] = useState<string[]>([]);
   const [selectedStrategy, setSelectedStrategy] = useState("");
   const [strategyModalOpen, setStrategyModalOpen] = useState(false);
 
@@ -59,7 +59,7 @@ export function AddTradeModal({ open, onOpenChange }) {
     if (!open) return;
     fetch("/api/strategies")
       .then((res) => res.json())
-      .then((list) => setStrategies(list));
+      .then((list: string[]) => setStrategies(list));
   }, [open]);
 
   // ---------- RESET ----------
@@ -80,7 +80,7 @@ export function AddTradeModal({ open, onOpenChange }) {
   };
 
   // ---------- MISTAKE TOGGLE ----------
-  const toggleMistake = (m) => {
+  const toggleMistake = (m: string) => {
     if (m === "No Mistakes") return setSelectedMistakes(["No Mistakes"]);
 
     setSelectedMistakes((prev) => {
@@ -385,8 +385,8 @@ export function AddTradeModal({ open, onOpenChange }) {
         <AddStrategyModal
           open={strategyModalOpen}
           onOpenChange={setStrategyModalOpen}
-          onAdded={(name) => {
-            setStrategies((prev) => [...prev, name]);
+          onAdded={(name: string) => {
+            setStrategies((prev: string[]) => [...prev, name]);
             setSelectedStrategy(name);
           }}
         />

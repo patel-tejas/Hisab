@@ -31,6 +31,11 @@ interface UserData {
   initials: string;
 }
 
+// Type for fallback data
+interface FallbackTickerItem extends Omit<TickerItem, 'source'> {
+  source: string;
+}
+
 export function Header({ onNewTrade }: HeaderProps) {
   const [ticker, setTicker] = useState<TickerItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -103,7 +108,7 @@ export function Header({ onNewTrade }: HeaderProps) {
       const data = await res.json();
       
       if (data.success && data.data) {
-        const validTickers = data.data
+        const validTickers: TickerItem[] = data.data
           .filter((item: TickerItem) => item.valid)
           .map((item: TickerItem) => ({
             ...item,
@@ -111,7 +116,7 @@ export function Header({ onNewTrade }: HeaderProps) {
           }));
         
         // Ensure all symbols are present
-        const fallbackData: Record<string, TickerItem> = {
+        const fallbackData: Record<string, FallbackTickerItem> = {
           "NSE:NIFTY": { symbol: "NSE:NIFTY", name: "NIFTY", price: 26186.45, change: 150.50, percent: 0.58, valid: true, source: "fallback" },
           "NSE:BANKNIFTY": { symbol: "NSE:BANKNIFTY", name: "BANKNIFTY", price: 59777.20, change: 350.75, percent: 0.59, valid: true, source: "fallback" },
           "BSE:SENSEX": { symbol: "BSE:SENSEX", name: "SENSEX", price: 86500.80, change: 500.25, percent: 0.58, valid: true, source: "fallback" },
@@ -133,18 +138,34 @@ export function Header({ onNewTrade }: HeaderProps) {
 
         const existingData = new Map(validTickers.map((item: TickerItem) => [item.symbol, item]));
         
-        const completeTickers = requiredSymbols.map(symbol => {
+        const completeTickers: TickerItem[] = requiredSymbols.map((symbol): TickerItem => {
           const existing = existingData.get(symbol);
           if (existing) return existing;
           
           const fallback = fallbackData[symbol];
+          if (!fallback) {
+            // Return a default ticker item if fallback data is missing
+            return {
+              symbol,
+              name: symbol.split(":").pop() || symbol,
+              price: 10000,
+              change: 0,
+              percent: 0,
+              valid: true,
+              source: "default"
+            };
+          }
+          
           const variation = 1 + (Math.random() - 0.5) * 0.005;
           
           return {
-            ...fallback,
+            symbol: fallback.symbol,
+            name: fallback.name,
             price: parseFloat((fallback.price * variation).toFixed(2)),
             change: parseFloat((fallback.change * variation).toFixed(2)),
             percent: parseFloat((fallback.percent * variation).toFixed(2)),
+            valid: fallback.valid,
+            source: fallback.source,
           };
         });
 
@@ -152,19 +173,19 @@ export function Header({ onNewTrade }: HeaderProps) {
       }
     } catch (err) {
       console.error("Ticker fetch failed", err);
-      // Fallback data
-      const fallbackTickers = [
-        { symbol: "NSE:NIFTY", name: "NIFTY", price: 26186.45, change: 150.50, percent: 0.58, valid: true },
-        { symbol: "NSE:BANKNIFTY", name: "BANKNIFTY", price: 59777.20, change: 350.75, percent: 0.59, valid: true },
-        { symbol: "BSE:SENSEX", name: "SENSEX", price: 86500.80, change: 500.25, percent: 0.58, valid: true },
-        { symbol: "NSE:MIDCPNIFTY", name: "MIDCAP", price: 60594.60, change: 200.40, percent: 0.33, valid: true },
-        { symbol: "NSE:FINNIFTY", name: "FINNIFTY", price: 27881.90, change: 120.30, percent: 0.43, valid: true },
-        { symbol: "MCX:GOLD1!", name: "GOLD", price: 62250.00, change: 150.00, percent: 0.24, valid: true },
-        { symbol: "MCX:SILVER1!", name: "SILVER", price: 71500.00, change: 200.00, percent: 0.28, valid: true },
-        { symbol: "MCX:CRUDEOIL1!", name: "CRUDE", price: 6500.00, change: -50.00, percent: -0.76, valid: true },
-        { symbol: "CRYPTO:BTCUSD", name: "BTC", price: 62000.45, change: 1250.30, percent: 2.05, valid: true },
-        { symbol: "CRYPTO:ETHUSD", name: "ETH", price: 3500.60, change: 85.40, percent: 2.50, valid: true },
-        { symbol: "CRYPTO:SOLUSD", name: "SOL", price: 180.25, change: 5.75, percent: 3.30, valid: true },
+      // Fallback data with explicit typing
+      const fallbackTickers: TickerItem[] = [
+        { symbol: "NSE:NIFTY", name: "NIFTY", price: 26186.45, change: 150.50, percent: 0.58, valid: true, source: "fallback" },
+        { symbol: "NSE:BANKNIFTY", name: "BANKNIFTY", price: 59777.20, change: 350.75, percent: 0.59, valid: true, source: "fallback" },
+        { symbol: "BSE:SENSEX", name: "SENSEX", price: 86500.80, change: 500.25, percent: 0.58, valid: true, source: "fallback" },
+        { symbol: "NSE:MIDCPNIFTY", name: "MIDCAP", price: 60594.60, change: 200.40, percent: 0.33, valid: true, source: "fallback" },
+        { symbol: "NSE:FINNIFTY", name: "FINNIFTY", price: 27881.90, change: 120.30, percent: 0.43, valid: true, source: "fallback" },
+        { symbol: "MCX:GOLD1!", name: "GOLD", price: 62250.00, change: 150.00, percent: 0.24, valid: true, source: "fallback" },
+        { symbol: "MCX:SILVER1!", name: "SILVER", price: 71500.00, change: 200.00, percent: 0.28, valid: true, source: "fallback" },
+        { symbol: "MCX:CRUDEOIL1!", name: "CRUDE", price: 6500.00, change: -50.00, percent: -0.76, valid: true, source: "fallback" },
+        { symbol: "CRYPTO:BTCUSD", name: "BTC", price: 62000.45, change: 1250.30, percent: 2.05, valid: true, source: "fallback" },
+        { symbol: "CRYPTO:ETHUSD", name: "ETH", price: 3500.60, change: 85.40, percent: 2.50, valid: true, source: "fallback" },
+        { symbol: "CRYPTO:SOLUSD", name: "SOL", price: 180.25, change: 5.75, percent: 3.30, valid: true, source: "fallback" },
       ];
       setTicker(fallbackTickers);
     } finally {
