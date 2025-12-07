@@ -14,7 +14,7 @@ export function StatsCards({ highestPnl, winRate, avgRiskReward, tradesThisMonth
     {
       label: "Highest P&L",
       value: `₹${highestPnl.toLocaleString("en-IN")}`,
-      change: "+287.5% vs last month",
+      change: "",
       changeColor: "text-green-600",
       progressColor: "bg-green-500",
       progress: 100,
@@ -24,7 +24,7 @@ export function StatsCards({ highestPnl, winRate, avgRiskReward, tradesThisMonth
     {
       label: "Win Rate",
       value: `${winRate}%`,
-      change: "+19.4% vs last month",
+      change: "",
       changeColor: "text-green-600",
       progressColor: "bg-primary",
       progress: winRate,
@@ -34,7 +34,7 @@ export function StatsCards({ highestPnl, winRate, avgRiskReward, tradesThisMonth
     {
       label: "Avg. Risk/Reward",
       value: avgRiskReward,
-      change: "+1.86% vs last month",
+      change: "",
       changeColor: "text-green-600",
       progressColor: "bg-muted",
       progress: 50,
@@ -44,7 +44,7 @@ export function StatsCards({ highestPnl, winRate, avgRiskReward, tradesThisMonth
     {
       label: "Trades This Month",
       value: tradesThisMonth.toString(),
-      change: "-1 vs last month",
+      change: "",
       changeColor: "text-muted-foreground",
       progressColor: "bg-transparent",
       progress: 0,
