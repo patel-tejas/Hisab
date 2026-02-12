@@ -8,6 +8,7 @@ export async function GET() {
   try {
     await db();
     const user = await verifyUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const userStrategies = await Strategy.find({ user: user.id });
 
@@ -26,6 +27,7 @@ export async function POST(req: Request) {
   try {
     await db();
     const user = await verifyUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { name } = await req.json();
 
     const exists =

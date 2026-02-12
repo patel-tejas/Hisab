@@ -7,6 +7,7 @@ export async function POST(req: Request) {
   try {
     await db();
     const user = await verifyUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     console.log("Creating trade for user:", user.id);
 
@@ -31,13 +32,13 @@ export async function GET() {
   try {
     await db();
     const user = await verifyUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const trades = await Trade.find({ user: user.id })
-      .populate("strategy")
       .sort({ date: -1 });
 
     return NextResponse.json(trades);
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 400 });
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

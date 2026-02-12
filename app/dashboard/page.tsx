@@ -11,8 +11,18 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetch("/api/dashboard")
-      .then(res => res.json())
-      .then(setData);
+      .then((res) => {
+        if (res.status === 401) {
+          window.location.href = "/sign-in";
+          return null;
+        }
+        if (!res.ok) throw new Error("Failed to fetch data");
+        return res.json();
+      })
+      .then((data) => {
+        if (data) setData(data);
+      })
+      .catch((err) => console.error(err));
   }, []);
 
   if (!data) return <p>Loading...</p>;

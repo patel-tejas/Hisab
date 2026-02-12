@@ -6,13 +6,13 @@ export interface AuthUser {
   username: string;
 }
 
-export async function verifyUser(): Promise<AuthUser> {
+export async function verifyUser(): Promise<AuthUser | null> {
     
   const cookieStore = await cookies();
   const token = cookieStore.get("Hisab_token")?.value;
 
   if (!token) {
-    throw new Error("Not authenticated");
+    return null;
   }
 
   try {
@@ -24,6 +24,6 @@ export async function verifyUser(): Promise<AuthUser> {
       username: payload.username,
     };
   } catch (err) {
-    throw new Error("Invalid token");
+    return null;
   }
 }
