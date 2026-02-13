@@ -7,9 +7,9 @@ export interface AuthUser {
 }
 
 export async function verifyUser(): Promise<AuthUser | null> {
-    
+
   const cookieStore = await cookies();
-  const token = cookieStore.get("Hisab_token")?.value;
+  const token = cookieStore.get("Hisaab_token")?.value;
 
   if (!token) {
     return null;

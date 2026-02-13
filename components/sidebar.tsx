@@ -34,7 +34,7 @@ export function Sidebar() {
         {!collapsed && (
           <div className="flex flex-col overflow-hidden">
             <span className="text-lg font-bold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-              Hisab
+              Hisaab
             </span>
             <span className="text-[10px] text-muted-foreground font-medium tracking-wider">PRO TRADER</span>
           </div>

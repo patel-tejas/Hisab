@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       { status: 201 }
     );
 
-    res.cookies.set("Hisab_token", token, {
+    res.cookies.set("Hisaab_token", token, {
       httpOnly: true,
       secure: true,
       sameSite: "strict",

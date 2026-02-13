@@ -8,7 +8,7 @@ async function verifyToken(token: string) {
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const token = req.cookies.get("Hisab_token")?.value;
+  const token = req.cookies.get("Hisaab_token")?.value;
 
   // ── Auth pages: redirect to /dashboard if already signed in ──
   const isAuthPage =

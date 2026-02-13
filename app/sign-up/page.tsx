@@ -56,7 +56,7 @@ export default function SignUpPage() {
             <Sparkles className="h-6 w-6 fill-white" />
           </div>
           <h1 className="text-2xl font-bold text-white">Create Account</h1>
-          <p className="text-gray-400 text-sm mt-2">Start your trading journey with Hisab</p>
+          <p className="text-gray-400 text-sm mt-2">Start your trading journey with Hisaab</p>
         </div>
 
         <form className="space-y-6" onSubmit={handleSubmit}>

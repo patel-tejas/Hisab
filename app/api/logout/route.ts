@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
 
     // Clear the token cookie
     response.cookies.set({
-      name: "Hisab_token",
+      name: "Hisaab_token",
       value: "",
       expires: new Date(0), // Set to past date
       path: "/",

@@ -13,8 +13,8 @@ const plusJakarta = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-  title: "Hisab - Trading Journal",
-  description: "Track, analyze, and improve your trading performance with Hisab",
+  title: "Hisaab - Trading Journal",
+  description: "Track, analyze, and improve your trading performance with Hisaab",
   generator: "v0.app",
   icons: {
     icon: [

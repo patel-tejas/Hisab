@@ -20,7 +20,7 @@ export default function LandingPage() {
             <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-primary-foreground shadow-lg shadow-indigo-500/20 group-hover:shadow-indigo-500/40 transition-shadow">
               <Sparkles className="h-5 w-5 fill-current" />
             </div>
-            <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">Hisab</span>
+            <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">Hisaab</span>
           </Link>
           <nav className="hidden md:flex items-center gap-8">
             <Link href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Features</Link>
@@ -76,7 +76,7 @@ export default function LandingPage() {
             <div className="rounded-xl border border-border overflow-hidden">
               <img
                 src="/heroImg.png"
-                alt="Hisab Trading Dashboard"
+                alt="Hisaab Trading Dashboard"
                 className="w-full h-auto"
               />
             </div>
@@ -408,7 +408,7 @@ export default function LandingPage() {
           <div className="relative z-10">
             <h2 className="text-3xl font-bold text-white sm:text-4xl">Ready to Trade Smarter?</h2>
             <p className="mx-auto mt-4 max-w-xl text-indigo-100">
-              Join thousands of traders who have improved their win rate and consistency using Hisab. It&apos;s free — no catches.
+              Join thousands of traders who have improved their win rate and consistency using Hisaab. It&apos;s free — no catches.
             </p>
             <Button size="lg" variant="secondary" className="mt-8 h-12 px-8 text-base bg-white text-indigo-600 hover:bg-gray-100 border-none shadow-xl" asChild>
               <Link href="/sign-up">
@@ -427,10 +427,10 @@ export default function LandingPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
               H
             </div>
-            <span className="font-semibold text-foreground">Hisab</span>
+            <span className="font-semibold text-foreground">Hisaab</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} Hisab. All rights reserved.
+            &copy; {new Date().getFullYear()} Hisaab. All rights reserved.
           </p>
         </div>
       </footer>
