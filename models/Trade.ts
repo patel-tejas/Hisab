@@ -30,6 +30,7 @@ export interface ITrade extends Document {
   mistakes: string[];
 
   notes?: string;
+  lessonsLearned?: string;
 
   images: string[];
 }
@@ -66,6 +67,7 @@ const TradeSchema = new Schema<ITrade>(
     mistakes: [String],
 
     notes: String,
+    lessonsLearned: String,
 
     images: { type: [String], default: [] },
   },

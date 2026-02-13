@@ -26,6 +26,16 @@ const defaultQuantities: Record<string, number> = {
   SILVER: 30,
 };
 
+// Moved outside to prevent re-mounting on every render
+const FieldGroup = ({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) => (
+  <div className="space-y-1.5">
+    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+      {label}{required && <span className="text-primary ml-0.5">*</span>}
+    </Label>
+    {children}
+  </div>
+);
+
 export function AddTradeModal({
   open,
   onOpenChange,
@@ -49,6 +59,7 @@ export function AddTradeModal({
 
   const [direction, setDirection] = useState("long");
   const [notes, setNotes] = useState("");
+  const [lessonsLearned, setLessonsLearned] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
 
@@ -81,6 +92,7 @@ export function AddTradeModal({
       setStopLoss(tradeToEdit.stopLoss || "");
       setTarget(tradeToEdit.target || "");
       setNotes(tradeToEdit.notes || "");
+      setLessonsLearned(tradeToEdit.lessonsLearned || "");
       setDirection(tradeToEdit.type || "long");
       setSelectedStrategy(tradeToEdit.strategy || "");
       setEntryConfidence([tradeToEdit.entryConfidence || 8]);
@@ -105,6 +117,7 @@ export function AddTradeModal({
     setStopLoss("");
     setTarget("");
     setNotes("");
+    setLessonsLearned("");
     setImages([]);
     setDirection("long");
     setSelectedStrategy("");
@@ -177,6 +190,7 @@ export function AddTradeModal({
       emotionalState: selectedEmotional,
       mistakes: selectedMistakes,
       notes,
+      lessonsLearned,
       images,
     };
 
@@ -192,15 +206,7 @@ export function AddTradeModal({
     else alert("Trade could not be saved.");
   }
 
-  // Field wrapper for consistent styling
-  const FieldGroup = ({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) => (
-    <div className="space-y-1.5">
-      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-        {label}{required && <span className="text-primary ml-0.5">*</span>}
-      </Label>
-      {children}
-    </div>
-  );
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -459,8 +465,13 @@ export function AddTradeModal({
                     </div>
                   </FieldGroup>
 
-                  <FieldGroup label="Lessons Learned" required>
-                    <Textarea className="rounded-lg bg-secondary/30 border-border min-h-[100px] resize-none" placeholder="What did you learn from this trade?" />
+                  <FieldGroup label="Lessons Learned">
+                    <Textarea
+                      className="rounded-lg bg-secondary/30 border-border min-h-[100px] resize-none"
+                      placeholder="What did you learn from this trade?"
+                      value={lessonsLearned}
+                      onChange={(e) => setLessonsLearned(e.target.value)}
+                    />
                   </FieldGroup>
                 </div>
               </div>
