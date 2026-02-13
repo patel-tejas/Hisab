@@ -1,4 +1,6 @@
+
 import { Card } from "@/components/ui/card"
+import { Sparkles } from "lucide-react"
 
 interface ConfidenceIndexProps {
   value: number
@@ -6,43 +8,62 @@ interface ConfidenceIndexProps {
 
 export function ConfidenceIndex({ value }: ConfidenceIndexProps) {
   const getConfidenceLevel = (val: number) => {
-    if (val >= 80) return "Very High Confidence"
-    if (val >= 60) return "High Confidence"
-    if (val >= 40) return "Moderate Confidence"
-    if (val >= 20) return "Low Confidence"
-    return "Very Low Confidence"
+    if (val >= 80) return "Very High"
+    if (val >= 60) return "High"
+    if (val >= 40) return "Moderate"
+    if (val >= 20) return "Low"
+    return "Very Low"
   }
 
   const getMessage = (val: number) => {
-    if (val >= 80) return "You are trading with excellent discipline and emotional stability."
-    if (val >= 60) return "Your trading discipline is good. Keep up the consistency."
-    if (val >= 40) return "Room for improvement in your trading psychology."
-    return "Consider reviewing your trading habits and emotional control."
+    if (val >= 80) return "Excellent discipline & control."
+    if (val >= 60) return "Good consistency, keep it up."
+    if (val >= 40) return "Room for improvement."
+    return "Review your trading habits."
   }
 
   return (
-    <Card className="p-5">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-foreground">Confidence Index</h3>
-        <span className="text-sm text-muted-foreground">Last 30 Days</span>
+    <Card className="p-6 glass-card flex flex-col justify-center h-full relative overflow-hidden group">
+      <div className="absolute top-0 right-0 p-4 opacity-50 text-indigo-500/20 group-hover:text-indigo-500/40 transition-colors">
+        <Sparkles size={48} />
       </div>
 
-      <div className="mt-4">
-        <div className="flex items-center justify-between text-xs mb-2">
-          <span className="text-red-500">Low</span>
-          <span className="text-green-500">High</span>
+      <div className="flex items-center justify-between z-10">
+        <div>
+          <h3 className="font-semibold text-foreground">Psychology Score</h3>
+          <p className="text-xs text-muted-foreground">AI Analysis • Last 30 Days</p>
         </div>
-        <div className="relative h-3 w-full rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500">
+        <div className="text-right">
+          <span className="text-2xl font-bold text-indigo-400">{value}</span>
+          <span className="text-xs text-muted-foreground">/100</span>
+        </div>
+      </div>
+
+      <div className="mt-6 z-10">
+        <div className="flex items-center justify-between text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wider">
+          <span>Fearful</span>
+          <span>Balanced</span>
+          <span>Confident</span>
+        </div>
+        <div className="relative h-2 w-full rounded-full bg-secondary">
+          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-red-500 via-amber-500 to-emerald-500 opacity-20"></div>
           <div
-            className="absolute top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-foreground border-2 border-background shadow-md transition-all"
-            style={{ left: `calc(${value}% - 10px)` }}
+            className="absolute top-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-white border-2 border-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)] transition-all duration-700 ease-out"
+            style={{ left: `calc(${value}% - 8px)` }}
           />
         </div>
       </div>
 
-      <p className="mt-4 text-center text-sm text-muted-foreground">
-        <span className="font-medium text-foreground">{getConfidenceLevel(value)}</span> - {getMessage(value)}
-      </p>
+      <div className="mt-4 z-10 bg-white/5 rounded-lg p-3 border border-white/5">
+        <div className="flex items-center gap-2">
+          <div className={`h-2 w-2 rounded-full ${value >= 60 ? "bg-emerald-500" : value >= 40 ? "bg-amber-500" : "bg-red-500"}`}></div>
+          <p className="text-sm">
+            <span className="font-medium text-foreground">{getConfidenceLevel(value)}</span>
+            <span className="text-muted-foreground mx-2">•</span>
+            <span className="text-muted-foreground italic">{getMessage(value)}</span>
+          </p>
+        </div>
+      </div>
     </Card>
   )
 }

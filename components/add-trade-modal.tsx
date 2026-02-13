@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Info, Brain, RotateCcw, Save, Upload, X } from "lucide-react";
+import { Info, Brain, RotateCcw, Save, Upload, X, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,6 @@ import { AddStrategyModal } from "./add-strategy-modal";
 import { RichTextEditor } from "./rich-text-editor";
 import { supabase } from "@/utils/supabase/client";
 
-// ---------- DEFAULT SYMBOLS -----------
 const defaultSymbols = ["NIFTY 50", "BANKNIFTY", "SENSEX", "BTC", "ETH", "GOLD", "SILVER"];
 
 const defaultQuantities: Record<string, number> = {
@@ -38,7 +37,6 @@ export function AddTradeModal({
 }) {
   const [activeTab, setActiveTab] = useState<"general" | "psychology">("general");
 
-  // ---------- FORM STATES (MAIN FIX) ----------
   const [symbol, setSymbol] = useState("");
   const [date, setDate] = useState("");
   const [entryPrice, setEntryPrice] = useState("");
@@ -54,19 +52,16 @@ export function AddTradeModal({
   const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
 
-  // Psychology tab states
   const [entryConfidence, setEntryConfidence] = useState([8]);
   const [satisfaction, setSatisfaction] = useState([9]);
   const [selectedEmotional, setSelectedEmotional] = useState("Calm");
   const [selectedOutcome, setSelectedOutcome] = useState("Full Success");
   const [selectedMistakes, setSelectedMistakes] = useState(["No Mistakes"]);
 
-  // Strategy
   const [strategies, setStrategies] = useState<string[]>([]);
   const [selectedStrategy, setSelectedStrategy] = useState("");
   const [strategyModalOpen, setStrategyModalOpen] = useState(false);
 
-  // ---------- FETCH STRATEGIES ----------
   useEffect(() => {
     if (!open) return;
     fetch("/api/strategies")
@@ -74,11 +69,10 @@ export function AddTradeModal({
       .then((list: string[]) => setStrategies(list));
   }, [open]);
 
-  // ---------- FILL FORM IF EDITING ----------
   useEffect(() => {
     if (open && tradeToEdit) {
       setSymbol(tradeToEdit.symbol);
-      setDate(tradeToEdit.date.split("T")[0]); // Simplify date
+      setDate(tradeToEdit.date.split("T")[0]);
       setEntryPrice(tradeToEdit.entryPrice);
       setExitPrice(tradeToEdit.exitPrice);
       setEntryTime(tradeToEdit.entryTime || "");
@@ -87,7 +81,7 @@ export function AddTradeModal({
       setStopLoss(tradeToEdit.stopLoss || "");
       setTarget(tradeToEdit.target || "");
       setNotes(tradeToEdit.notes || "");
-      setDirection(tradeToEdit.type || "long"); // Ensure "type" maps to "direction"
+      setDirection(tradeToEdit.type || "long");
       setSelectedStrategy(tradeToEdit.strategy || "");
       setEntryConfidence([tradeToEdit.entryConfidence || 8]);
       setSatisfaction([tradeToEdit.satisfaction || 9]);
@@ -100,7 +94,6 @@ export function AddTradeModal({
     }
   }, [open, tradeToEdit]);
 
-  // ---------- RESET ----------
   const handleReset = () => {
     setSymbol("");
     setDate("");
@@ -120,20 +113,16 @@ export function AddTradeModal({
     setSelectedMistakes(["No Mistakes"]);
   };
 
-  // ---------- MISTAKE TOGGLE ----------
   const toggleMistake = (m: string) => {
     if (m === "No Mistakes") return setSelectedMistakes(["No Mistakes"]);
-
     setSelectedMistakes((prev) => {
       const f = prev.filter((x) => x !== "No Mistakes");
       return f.includes(m) ? f.filter((x) => x !== m) : [...f, m];
     });
   };
 
-  // ---------- HANDLE FILE UPLOAD ----------
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
-
     setUploading(true);
     const file = e.target.files[0];
     const fileExt = file.name.split('.').pop();
@@ -145,9 +134,7 @@ export function AddTradeModal({
         .from('trades')
         .upload(filePath, file);
 
-      if (uploadError) {
-        throw uploadError;
-      }
+      if (uploadError) throw uploadError;
 
       const { data } = supabase.storage
         .from('trades')
@@ -165,8 +152,6 @@ export function AddTradeModal({
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-
-  // ---------- SAVE TRADE ----------
   async function handleSaveTrade() {
     const pnl = (Number(exitPrice) - Number(entryPrice)) * Number(quantity);
     const pnlPercent = ((Number(exitPrice) - Number(entryPrice)) / Number(entryPrice)) * 100;
@@ -202,308 +187,312 @@ export function AddTradeModal({
 
     if (res.ok) {
       onOpenChange(false);
-      // We might want to trigger a refresh here or let the parent handle it
-      window.location.reload(); // Simple refresh for now
+      window.location.reload();
     }
     else alert("Trade could not be saved.");
   }
 
+  // Field wrapper for consistent styling
+  const FieldGroup = ({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) => (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        {label}{required && <span className="text-primary ml-0.5">*</span>}
+      </Label>
+      {children}
+    </div>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{tradeToEdit ? "Edit Trade" : "Add New Trade"}</DialogTitle>
+      <DialogContent className="max-w-[90vw] sm:max-w-[90vw] max-h-[90vh] overflow-y-auto p-0">
+        {/* Header */}
+        <DialogHeader className="px-6 pt-6 pb-0">
+          <DialogTitle className="text-xl font-bold text-foreground">
+            {tradeToEdit ? "Edit Trade" : "Add New Trade"}
+          </DialogTitle>
         </DialogHeader>
 
-        {/* ---------- TABS ---------- */}
-        <div className="flex border-b">
+        {/* Tabs */}
+        <div className="flex gap-1 px-6 pt-2">
           <button
             onClick={() => setActiveTab("general")}
             className={cn(
-              "px-4 py-3 border-b-2",
-              activeTab === "general" ? "border-primary text-primary" : "text-muted-foreground"
+              "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+              activeTab === "general"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
             )}
           >
-            <Info className="h-4 w-4 inline-block mr-2" />
+            <Info className="h-4 w-4" />
             General
           </button>
-
           <button
             onClick={() => setActiveTab("psychology")}
             className={cn(
-              "px-4 py-3 border-b-2",
-              activeTab === "psychology" ? "border-primary text-primary" : "text-muted-foreground"
+              "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+              activeTab === "psychology"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
             )}
           >
-            <Brain className="h-4 w-4 inline-block mr-2" />
+            <Brain className="h-4 w-4" />
             Psychology
           </button>
         </div>
 
-        {/* =======================================================
-                          GENERAL TAB
-        ======================================================= */}
-        {activeTab === "general" && (
-          <div className="space-y-5 py-4">
+        <div className="px-6 pb-6">
+          {/* ──────── GENERAL TAB ──────── */}
+          {activeTab === "general" && (
+            <div className="space-y-5 pt-4">
 
-            {/* SYMBOL SELECT */}
-            <div>
-              <Label>Symbol *</Label>
-              <Select
-                onValueChange={(v) => {
-                  setSymbol(v);
-                  if (defaultQuantities[v]) setQuantity(String(defaultQuantities[v]));
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select symbol" />
-                </SelectTrigger>
-                <SelectContent>
-                  {defaultSymbols.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Input
-                className="mt-2"
-                placeholder="Or type custom"
-                value={symbol}
-                onChange={(e) => setSymbol(e.target.value)}
-              />
-            </div>
-
-            {/* DATE – ENTRY – EXIT */}
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label>Date *</Label>
-                <div className="flex gap-2">
-                  <Input value={date} type="date" onChange={(e) => setDate(e.target.value)} />
-                </div>
-              </div>
-
-              <div>
-                <Label>Entry Time</Label>
-                <Input value={entryTime} type="time" onChange={(e) => setEntryTime(e.target.value)} />
-              </div>
-
-              <div>
-                <Label>Exit Time</Label>
-                <Input value={exitTime} type="time" onChange={(e) => setExitTime(e.target.value)} />
-              </div>
-
-              <div>
-                <Label>Entry Price *</Label>
-                <Input value={entryPrice} type="number" onChange={(e) => setEntryPrice(e.target.value)} />
-              </div>
-
-              <div>
-                <Label>Exit Price *</Label>
-                <Input value={exitPrice} type="number" onChange={(e) => setExitPrice(e.target.value)} />
-              </div>
-            </div>
-
-            {/* QUANTITY */}
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label>Quantity *</Label>
-                <Input value={quantity} type="number" onChange={(e) => setQuantity(e.target.value)} />
-              </div>
-            </div>
-
-            {/* Direction */}
-            <div>
-              <Label>Direction *</Label>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant={direction === "long" ? "default" : "outline"}
-                  onClick={() => setDirection("long")}
-                >
-                  ↑ Long
-                </Button>
-
-                <Button
-                  type="button"
-                  variant={direction === "short" ? "default" : "outline"}
-                  onClick={() => setDirection("short")}
-                >
-                  ↓ Short
-                </Button>
-              </div>
-            </div>
-
-            {/* SL + Target */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Stop Loss</Label>
-                <Input value={stopLoss} type="number" onChange={(e) => setStopLoss(e.target.value)} />
-              </div>
-
-              <div>
-                <Label>Target</Label>
-                <Input value={target} type="number" onChange={(e) => setTarget(e.target.value)} />
-              </div>
-            </div>
-
-            {/* Strategy */}
-            <div>
-              <Label>Strategy *</Label>
-              <Select
-                value={selectedStrategy}
-                onValueChange={(v) => {
-                  if (v === "__add__") return setStrategyModalOpen(true);
-                  setSelectedStrategy(v);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose strategy" />
-                </SelectTrigger>
-
-                <SelectContent>
-                  {strategies.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {s}
-                    </SelectItem>
-                  ))}
-
-                  <div className="border-t my-2" />
-
-                  <SelectItem value="__add__">➕ Add New Strategy</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Outcome */}
-            <div>
-              <Label>Outcome *</Label>
-              <Select value={selectedOutcome} onValueChange={setSelectedOutcome}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {outcomes.map((o) => (
-                    <SelectItem key={o} value={o}>
-                      {o}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Analysis Images */}
-            <div>
-              <Label>Chart Screenshots</Label>
-              <div className="mt-2 flex flex-wrap gap-4">
-                {images.map((img, index) => (
-                  <div key={index} className="relative w-24 h-24 border rounded-lg overflow-hidden group">
-                    <img src={img} alt={`Screenshot ${index + 1}`} className="w-full h-full object-cover" />
-                    <button
-                      onClick={() => removeImage(index)}
-                      className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              {/* Row 1: Symbol + Direction + Date */}
+              <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-4">
+                  <FieldGroup label="Symbol" required>
+                    <Select
+                      value={symbol}
+                      onValueChange={(v) => {
+                        setSymbol(v);
+                        if (defaultQuantities[v]) setQuantity(String(defaultQuantities[v]));
+                      }}
                     >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
+                      <SelectTrigger className="rounded-lg bg-secondary/30 border-border h-10">
+                        <SelectValue placeholder="Select symbol" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {defaultSymbols.map((s) => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      className="mt-1.5 rounded-lg bg-secondary/30 border-border h-10"
+                      placeholder="Or type custom symbol"
+                      value={symbol}
+                      onChange={(e) => setSymbol(e.target.value)}
+                    />
+                  </FieldGroup>
+                </div>
 
-                <label className="w-24 h-24 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors">
-                  <Upload className="h-6 w-6 text-muted-foreground mb-1" />
-                  <span className="text-xs text-muted-foreground">{uploading ? "..." : "Add"}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleFileUpload}
-                    disabled={uploading}
-                  />
-                </label>
+                <div className="col-span-4">
+                  <FieldGroup label="Direction" required>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDirection("long")}
+                        className={cn(
+                          "flex-1 flex items-center justify-center gap-2 h-10 rounded-lg text-sm font-semibold transition-all border",
+                          direction === "long"
+                            ? "bg-indigo-500/15 border-indigo-500/40 text-indigo-500 dark:text-indigo-400"
+                            : "bg-secondary/30 border-border text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        <ArrowUpRight className="h-4 w-4" /> Long
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDirection("short")}
+                        className={cn(
+                          "flex-1 flex items-center justify-center gap-2 h-10 rounded-lg text-sm font-semibold transition-all border",
+                          direction === "short"
+                            ? "bg-orange-500/15 border-orange-500/40 text-orange-500 dark:text-orange-400"
+                            : "bg-secondary/30 border-border text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        <ArrowDownRight className="h-4 w-4" /> Short
+                      </button>
+                    </div>
+                  </FieldGroup>
+                </div>
+
+                <div className="col-span-4">
+                  <FieldGroup label="Date" required>
+                    <Input value={date} type="date" onChange={(e) => setDate(e.target.value)} className="rounded-lg bg-secondary/30 border-border h-10" />
+                  </FieldGroup>
+                </div>
               </div>
-            </div>
 
-            {/* Notes */}
-            <div>
-              <Label>Trade Analysis *</Label>
-              <RichTextEditor content={notes} onChange={setNotes} />
-            </div>
-          </div>
-        )}
+              {/* Row 2: Entry Price, Exit Price, Quantity, Entry Time, Exit Time */}
+              <div className="grid grid-cols-5 gap-4">
+                <FieldGroup label="Entry Price" required>
+                  <Input value={entryPrice} type="number" onChange={(e) => setEntryPrice(e.target.value)} className="rounded-lg bg-secondary/30 border-border h-10" placeholder="0.00" />
+                </FieldGroup>
+                <FieldGroup label="Exit Price" required>
+                  <Input value={exitPrice} type="number" onChange={(e) => setExitPrice(e.target.value)} className="rounded-lg bg-secondary/30 border-border h-10" placeholder="0.00" />
+                </FieldGroup>
+                <FieldGroup label="Quantity" required>
+                  <Input value={quantity} type="number" onChange={(e) => setQuantity(e.target.value)} className="rounded-lg bg-secondary/30 border-border h-10" placeholder="0" />
+                </FieldGroup>
+                <FieldGroup label="Entry Time">
+                  <Input value={entryTime} type="time" onChange={(e) => setEntryTime(e.target.value)} className="rounded-lg bg-secondary/30 border-border h-10" />
+                </FieldGroup>
+                <FieldGroup label="Exit Time">
+                  <Input value={exitTime} type="time" onChange={(e) => setExitTime(e.target.value)} className="rounded-lg bg-secondary/30 border-border h-10" />
+                </FieldGroup>
+              </div>
 
-        {/* =======================================================
-                          PSYCHOLOGY TAB
-        ======================================================= */}
-        {activeTab === "psychology" && (
-          <div className="space-y-6 py-4">
-            <div className="grid grid-cols-2 gap-6">
-
-              {/* LEFT */}
-              <div className="space-y-6">
-                <div>
-                  <Label>Entry Confidence</Label>
-                  <Slider value={entryConfidence} onValueChange={setEntryConfidence} max={10} min={1} />
-                  <p className="text-center">{entryConfidence[0]}</p>
-                </div>
-
-                <div>
-                  <Label>Satisfaction</Label>
-                  <Slider value={satisfaction} onValueChange={setSatisfaction} max={10} min={1} />
-                  <p className="text-center">{satisfaction[0]}</p>
-                </div>
-
-                <div>
-                  <Label>Emotional State *</Label>
-                  <Select value={selectedEmotional} onValueChange={setSelectedEmotional}>
-                    <SelectTrigger>
+              {/* Row 3: Stop Loss, Target, Strategy, Outcome */}
+              <div className="grid grid-cols-4 gap-4">
+                <FieldGroup label="Stop Loss">
+                  <Input value={stopLoss} type="number" onChange={(e) => setStopLoss(e.target.value)} className="rounded-lg bg-secondary/30 border-border h-10" placeholder="0.00" />
+                </FieldGroup>
+                <FieldGroup label="Target">
+                  <Input value={target} type="number" onChange={(e) => setTarget(e.target.value)} className="rounded-lg bg-secondary/30 border-border h-10" placeholder="0.00" />
+                </FieldGroup>
+                <FieldGroup label="Strategy" required>
+                  <Select
+                    value={selectedStrategy}
+                    onValueChange={(v) => {
+                      if (v === "__add__") return setStrategyModalOpen(true);
+                      setSelectedStrategy(v);
+                    }}
+                  >
+                    <SelectTrigger className="rounded-lg bg-secondary/30 border-border h-10">
+                      <SelectValue placeholder="Choose strategy" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {strategies.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                      <div className="border-t my-1" />
+                      <SelectItem value="__add__">➕ Add New Strategy</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FieldGroup>
+                <FieldGroup label="Outcome" required>
+                  <Select value={selectedOutcome} onValueChange={setSelectedOutcome}>
+                    <SelectTrigger className="rounded-lg bg-secondary/30 border-border h-10">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {emotionalStates.map((em) => (
-                        <SelectItem key={em} value={em}>
-                          {em}
-                        </SelectItem>
+                      {outcomes.map((o) => (
+                        <SelectItem key={o} value={o}>{o}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
+                </FieldGroup>
               </div>
 
-              {/* RIGHT */}
-              <div className="space-y-6">
-                <div>
-                  <Label>Mistakes *</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {mistakeOptions.map((m) => (
-                      <label key={m} className="flex items-center gap-2">
-                        <Checkbox
-                          checked={selectedMistakes.includes(m)}
-                          onCheckedChange={() => toggleMistake(m)}
-                        />
-                        {m}
-                      </label>
+              {/* Row 4: Screenshots + Trade Analysis side by side */}
+              <div className="grid grid-cols-2 gap-6">
+                <FieldGroup label="Chart Screenshots">
+                  <div className="flex flex-wrap gap-3 mt-1">
+                    {images.map((img, index) => (
+                      <div key={index} className="relative w-20 h-20 border border-border rounded-lg overflow-hidden group">
+                        <img src={img} alt={`Screenshot ${index + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => removeImage(index)}
+                          className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
                     ))}
+                    <label className="w-20 h-20 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-muted/30 hover:border-primary/40 transition-all">
+                      <Upload className="h-5 w-5 text-muted-foreground mb-0.5" />
+                      <span className="text-[10px] text-muted-foreground font-medium">{uploading ? "Uploading..." : "Upload"}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                        disabled={uploading}
+                      />
+                    </label>
                   </div>
+                </FieldGroup>
+
+                <FieldGroup label="Trade Analysis" required>
+                  <RichTextEditor content={notes} onChange={setNotes} />
+                </FieldGroup>
+              </div>
+            </div>
+          )}
+
+          {/* ──────── PSYCHOLOGY TAB ──────── */}
+          {activeTab === "psychology" && (
+            <div className="pt-4">
+              <div className="grid grid-cols-2 gap-8">
+                {/* Left Column */}
+                <div className="space-y-6">
+                  <FieldGroup label="Entry Confidence">
+                    <div className="flex items-center gap-4">
+                      <Slider value={entryConfidence} onValueChange={setEntryConfidence} max={10} min={1} className="flex-1" />
+                      <span className="text-xl font-bold text-foreground w-8 text-center">{entryConfidence[0]}</span>
+                    </div>
+                  </FieldGroup>
+
+                  <FieldGroup label="Satisfaction">
+                    <div className="flex items-center gap-4">
+                      <Slider value={satisfaction} onValueChange={setSatisfaction} max={10} min={1} className="flex-1" />
+                      <span className="text-xl font-bold text-foreground w-8 text-center">{satisfaction[0]}</span>
+                    </div>
+                  </FieldGroup>
+
+                  <FieldGroup label="Emotional State" required>
+                    <Select value={selectedEmotional} onValueChange={setSelectedEmotional}>
+                      <SelectTrigger className="rounded-lg bg-secondary/30 border-border h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {emotionalStates.map((em) => (
+                          <SelectItem key={em} value={em}>{em}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FieldGroup>
                 </div>
 
-                <div>
-                  <Label>Lessons Learned *</Label>
-                  <Textarea />
+                {/* Right Column */}
+                <div className="space-y-6">
+                  <FieldGroup label="Mistakes" required>
+                    <div className="grid grid-cols-2 gap-2">
+                      {mistakeOptions.map((m) => (
+                        <label key={m} className="flex items-center gap-2 text-sm text-foreground cursor-pointer hover:text-primary transition-colors">
+                          <Checkbox
+                            checked={selectedMistakes.includes(m)}
+                            onCheckedChange={() => toggleMistake(m)}
+                          />
+                          {m}
+                        </label>
+                      ))}
+                    </div>
+                  </FieldGroup>
+
+                  <FieldGroup label="Lessons Learned" required>
+                    <Textarea className="rounded-lg bg-secondary/30 border-border min-h-[100px] resize-none" placeholder="What did you learn from this trade?" />
+                  </FieldGroup>
                 </div>
               </div>
             </div>
+          )}
+
+          {/* ──────── FOOTER ──────── */}
+          <div className="flex items-center justify-between pt-5 mt-5 border-t border-border">
+            <Button
+              variant="ghost"
+              onClick={handleReset}
+              className="text-muted-foreground hover:text-foreground rounded-lg"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" /> Reset
+            </Button>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="rounded-lg"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveTrade}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg shadow-lg shadow-primary/20 px-6 transition-all hover:scale-[1.02]"
+              >
+                <Save className="mr-2 h-4 w-4" /> {tradeToEdit ? "Update Trade" : "Save Trade"}
+              </Button>
+            </div>
           </div>
-        )}
-
-        {/* ---------- FOOTER ---------- */}
-        <div className="flex justify-end gap-3 pt-4 border-t">
-          <Button variant="outline" onClick={handleReset}>
-            <RotateCcw className="mr-2 h-4 w-4" /> Reset
-          </Button>
-
-          <Button onClick={handleSaveTrade}>
-            <Save className="mr-2 h-4 w-4" /> {tradeToEdit ? "Update Trade" : "Save Trade"}
-          </Button>
         </div>
 
         {/* STRATEGY ADD MODAL */}

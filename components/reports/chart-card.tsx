@@ -8,10 +8,11 @@ import { ChartModal } from "./chart-modal";
 interface ChartCardProps {
     title: string;
     children: ReactNode;
-    height?: string; // e.g., "h-[300px]"
+    height?: string;
+    filters?: ReactNode;
 }
 
-export function ChartCard({ title, children, height = "h-[300px]" }: ChartCardProps) {
+export function ChartCard({ title, children, height = "h-[300px]", filters }: ChartCardProps) {
     const [isExpanded, setIsExpanded] = useState(false);
 
     return (
@@ -24,6 +25,7 @@ export function ChartCard({ title, children, height = "h-[300px]" }: ChartCardPr
                         size="icon"
                         onClick={() => setIsExpanded(true)}
                         title="Maximize Chart"
+                        className="h-8 w-8 rounded-lg hover:bg-muted"
                     >
                         <Maximize2 className="h-4 w-4" />
                     </Button>
@@ -36,6 +38,7 @@ export function ChartCard({ title, children, height = "h-[300px]" }: ChartCardPr
                 title={title}
                 isOpen={isExpanded}
                 onClose={() => setIsExpanded(false)}
+                filters={filters}
             >
                 {children}
             </ChartModal>

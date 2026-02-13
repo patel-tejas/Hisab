@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -5,11 +6,23 @@ import { StatsCards } from "@/components/stats-cards";
 import { ConfidenceIndex } from "@/components/confidence-index";
 import { CumulativePnlChart } from "@/components/cumulative-pnl-chart";
 import { TopTrades } from "@/components/top-trades";
+import { HeroPnl } from "@/components/hero-pnl";
+import { WinLossChart } from "@/components/win-loss-chart";
+import { CalendarHeatmap } from "@/components/calendar-heatmap";
+import { RecentActivity } from "@/components/recent-activity";
+import { DashboardSkeleton } from "@/components/dashboard-skeleton";
+import { format } from "date-fns";
 
 export default function DashboardPage() {
   const [data, setData] = useState<any>(null);
+  const [greeting, setGreeting] = useState("");
 
   useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting("Good Morning");
+    else if (hour < 18) setGreeting("Good Afternoon");
+    else setGreeting("Good Evening");
+
     fetch("/api/dashboard")
       .then((res) => {
         if (res.status === 401) {
@@ -25,24 +38,65 @@ export default function DashboardPage() {
       .catch((err) => console.error(err));
   }, []);
 
-  if (!data) return <p>Loading...</p>;
+  if (!data) return <DashboardSkeleton />;
+
+  const today = format(new Date(), "EEEE, d MMMM yyyy");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
+
+      {/* Greeting */}
+      <div>
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-2">
+          {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">Trader</span>
+        </h1>
+        <p className="text-muted-foreground">{today}</p>
+      </div>
+
+      {/* Row 1: Hero P&L + Psychology Score */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <div>
+          <HeroPnl
+            totalPnl={data.totalPnl}
+            totalTrades={data.totalTrades}
+            winRate={data.winRate}
+          />
+        </div>
+        <div>
+          <ConfidenceIndex value={data.confidenceIndex} />
+        </div>
+      </div>
+
+      {/* Row 2: Stats Cards with Sparklines */}
       <StatsCards
         highestPnl={data.highestPnl}
         winRate={data.winRate}
         avgRiskReward={data.avgRiskReward}
         tradesThisMonth={data.tradesThisMonth}
+        sparklineData={data.weeklyPnl}
       />
 
-      <ConfidenceIndex value={data.confidenceIndex} />
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+      {/* Row 3: Equity Curve + Win/Loss Donut + Calendar Heatmap */}
+      <div className="grid gap-6 md:grid-cols-4">
+        <div className="md:col-span-2">
           <CumulativePnlChart data={data.cumulativePnl} />
         </div>
+        <div className="md:col-span-1">
+          <WinLossChart
+            winCount={data.winCount}
+            lossCount={data.lossCount}
+            winRate={data.winRate}
+          />
+        </div>
+        <div className="md:col-span-1">
+          <CalendarHeatmap data={data.dailyPnl} />
+        </div>
+      </div>
+
+      {/* Row 4: Top Trades + Recent Activity */}
+      <div className="grid gap-6 md:grid-cols-2">
         <TopTrades trades={data.topTrades} />
+        <RecentActivity trades={data.recentTrades} />
       </div>
     </div>
   );

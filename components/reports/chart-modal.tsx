@@ -1,4 +1,3 @@
-
 import {
     Dialog,
     DialogContent,
@@ -12,16 +11,24 @@ interface ChartModalProps {
     isOpen: boolean;
     onClose: () => void;
     children: ReactNode;
+    filters?: ReactNode;
 }
 
-export function ChartModal({ title, isOpen, onClose, children }: ChartModalProps) {
+export function ChartModal({ title, isOpen, onClose, children, filters }: ChartModalProps) {
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-[90vw] h-[80vh] flex flex-col">
-                <DialogHeader>
-                    <DialogTitle>{title}</DialogTitle>
+            <DialogContent className="max-w-[90vw] sm:max-w-[90vw] h-[85vh] flex flex-col p-0 gap-0">
+                <DialogHeader className="px-6 pt-5 pb-0 shrink-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <DialogTitle className="text-lg font-bold">{title}</DialogTitle>
+                        {filters && (
+                            <div className="flex items-center gap-2 flex-wrap">
+                                {filters}
+                            </div>
+                        )}
+                    </div>
                 </DialogHeader>
-                <div className="flex-1 w-full h-full min-h-0">{children}</div>
+                <div className="flex-1 w-full min-h-0 px-6 pb-6 pt-4">{children}</div>
             </DialogContent>
         </Dialog>
     );
