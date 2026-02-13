@@ -32,7 +32,7 @@ export default function SignInPage() {
 
     if (res.ok) {
       toast.success("Signed in successfully!");
-      setTimeout(() => router.push("/dashboard"), 800);
+      window.location.href = "/dashboard";
     } else {
       toast.error("Invalid username or password");
     }

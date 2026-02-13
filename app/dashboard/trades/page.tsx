@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, ArrowUpDown, Search, ArrowUpRight, ArrowDownRight, ChevronDown } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUpDown, Search, ArrowUpRight, ArrowDownRight, ChevronDown, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -206,7 +206,14 @@ export default function TradesPage() {
                   <TableCell className="text-sm text-muted-foreground">{formatDate(trade.date)}</TableCell>
 
                   <TableCell>
-                    <span className="font-semibold text-foreground">{trade.symbol}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-foreground">{trade.symbol}</span>
+                      {trade.images && trade.images.length > 0 && (
+                        <span title={`${trade.images.length} image(s)`}>
+                          <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
 
                   <TableCell>

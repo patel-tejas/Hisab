@@ -11,6 +11,10 @@ import { WinLossChart } from "@/components/win-loss-chart";
 import { CalendarHeatmap } from "@/components/calendar-heatmap";
 import { RecentActivity } from "@/components/recent-activity";
 import { DashboardSkeleton } from "@/components/dashboard-skeleton";
+import { TradingInsights } from "@/components/trading-insights";
+import { MonthlyComparison } from "@/components/monthly-comparison";
+import { GoalTracker } from "@/components/goal-tracker";
+import { RevengeTrades } from "@/components/revenge-trades";
 import { format } from "date-fns";
 
 export default function DashboardPage() {
@@ -48,7 +52,7 @@ export default function DashboardPage() {
       {/* Greeting */}
       <div>
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-2">
-          {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">Trader</span>
+          {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">Pro Trader</span>
         </h1>
         <p className="text-muted-foreground">{today}</p>
       </div>
@@ -76,7 +80,21 @@ export default function DashboardPage() {
         sparklineData={data.weeklyPnl}
       />
 
-      {/* Row 3: Equity Curve + Win/Loss Donut + Calendar Heatmap */}
+      {/* Row 3: Trading Insights */}
+      {data.insights && (
+        <TradingInsights insights={data.insights} />
+      )}
+
+      {/* Row 4: Monthly Stats + Goal + Revenge */}
+      <div className="grid gap-6 md:grid-cols-3">
+        {data.monthlyComparison && (
+          <MonthlyComparison comparison={data.monthlyComparison} />
+        )}
+        <GoalTracker currentPnl={data.monthlyPnl || 0} />
+        <RevengeTrades trades={data.revengeTrades || []} totalTrades={data.totalTrades} />
+      </div>
+
+      {/* Row 5: Equity Curve + Win/Loss Donut + Calendar Heatmap */}
       <div className="grid gap-6 md:grid-cols-4">
         <div className="md:col-span-2">
           <CumulativePnlChart data={data.cumulativePnl} />

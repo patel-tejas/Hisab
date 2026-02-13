@@ -144,12 +144,14 @@ export default function ReportsPage() {
 
   // ── BASE FILTER BY DATE RANGE ──
   const filteredTrades = useMemo(() => {
-    const days = Number(range);
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    return trades
-      .filter((t) => new Date(t.date) >= cutoff)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    let result = trades;
+    if (range !== "all") {
+      const days = Number(range);
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - days);
+      result = trades.filter((t) => new Date(t.date) >= cutoff);
+    }
+    return result.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [trades, range]);
 
   // ── UNIQUE SYMBOLS ──
@@ -187,7 +189,7 @@ export default function ReportsPage() {
     const avgLoss = totalLoss / (lossTrades.length || 1);
     const winRate = Math.round((wins / filteredTrades.length) * 100);
     const expectancy = (winRate / 100) * avgWin - ((100 - winRate) / 100) * avgLoss;
-    const profitFactor = totalLoss === 0 ? totalWin : totalWin / totalLoss;
+    const profitFactor = totalLoss === 0 ? (totalWin > 0 ? 100 : 0) : Number((totalWin / totalLoss).toFixed(2));
     const dailyMap: Record<string, number[]> = {};
     filteredTrades.forEach((t) => { const d = new Date(t.date).toLocaleDateString(); if (!dailyMap[d]) dailyMap[d] = []; dailyMap[d].push(t.pnl); });
     const dailyStats = Object.entries(dailyMap).map(([date, arr]) => ({ date, pnl: arr.reduce((s, v) => s + v, 0) }));
@@ -284,11 +286,12 @@ export default function ReportsPage() {
       running += t.pnl;
       if (running > peak) peak = running;
       const drawdown = peak > 0 ? ((running - peak) / peak) * 100 : 0;
-      return { date: new Date(t.date).toLocaleDateString(), drawdown, equity: running };
+      return { date: new Date(t.date).toLocaleDateString(), drawdown, drawdownAmount: peak - running, equity: running };
     });
   }, [filteredTrades, ddSymbol]);
 
   const maxDrawdown = useMemo(() => drawdownData.length ? Math.min(...drawdownData.map((d) => d.drawdown)) : 0, [drawdownData]);
+  const maxDrawdownAmount = useMemo(() => drawdownData.length ? Math.max(...drawdownData.map((d) => d.drawdownAmount)) : 0, [drawdownData]);
 
   // ── RISK METRICS (filtered) ──
   const riskMetrics = useMemo(() => {
@@ -381,7 +384,7 @@ export default function ReportsPage() {
     { id: "journal" as Tab, label: "Journal", icon: FileText },
   ];
 
-  const rangeLabel = range === "7" ? "7 Days" : range === "30" ? "30 Days" : range === "90" ? "90 Days" : "This Year";
+  const rangeLabel = range === "7" ? "7 Days" : range === "30" ? "30 Days" : range === "90" ? "90 Days" : range === "all" ? "All Time" : "This Year";
 
   return (
     <div className="space-y-6 pb-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
@@ -412,6 +415,7 @@ export default function ReportsPage() {
               <DropdownMenuItem onClick={() => setRange("30")}>Last 30 Days</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setRange("90")}>Last 90 Days</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setRange("365")}>This Year</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setRange("all")}>All Time</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -765,7 +769,10 @@ export default function ReportsPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="p-4 glass-card">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Max Drawdown</p>
-              <p className="text-2xl font-bold text-rose-500 mt-1">{maxDrawdown.toFixed(1)}%</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-2xl font-bold text-rose-500 mt-1">{maxDrawdown.toFixed(1)}%</p>
+                <p className="text-sm font-medium text-rose-400">(-₹{maxDrawdownAmount.toLocaleString("en-IN")})</p>
+              </div>
               <p className="text-xs text-muted-foreground">From peak equity</p>
             </Card>
             <Card className="p-4 glass-card">
@@ -798,7 +805,18 @@ export default function ReportsPage() {
                   <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                   <XAxis dataKey="date" tick={{ fontSize: 10 }} />
                   <YAxis tickFormatter={(v) => `${v}%`} />
-                  <Tooltip formatter={(value: number) => [`${value.toFixed(1)}%`, "Drawdown"]} />
+                  <Tooltip content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null
+                    const data = payload[0].payload
+                    return (
+                      <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-xl text-sm">
+                        <p className="text-muted-foreground text-xs mb-1">{label}</p>
+                        <p className="font-semibold text-rose-500">Drawdown: {data.drawdown.toFixed(2)}%</p>
+                        <p className="text-xs text-muted-foreground mt-1">Amount: -₹{Math.round(data.drawdownAmount || 0).toLocaleString("en-IN")}</p>
+                        <p className="text-xs text-muted-foreground">Equity: ₹{Math.round(data.equity).toLocaleString("en-IN")}</p>
+                      </div>
+                    )
+                  }} />
                   <Area type="monotone" dataKey="drawdown" stroke="#f43f5e" fill="url(#ddGrad)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>

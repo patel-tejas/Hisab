@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { toast } from "sonner";
 import { Sun, ChevronDown, Plus, RefreshCw, LogOut, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +38,26 @@ export function Header({ onNewTrade }: HeaderProps) {
   const animationRef = useRef<number>(null);
   const router = useRouter();
   const { setTheme, theme } = useTheme();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = useCallback(async () => {
+    setLoggingOut(true);
+    try {
+      const res = await fetch("/api/logout", { method: "POST", credentials: "include" });
+      if (res.ok) {
+        // Clear any localStorage caches
+        localStorage.removeItem("ai_insights_cache");
+        toast.success("Logged out successfully");
+        window.location.href = "/sign-in";
+      } else {
+        toast.error("Failed to log out");
+      }
+    } catch {
+      toast.error("Failed to log out");
+    } finally {
+      setLoggingOut(false);
+    }
+  }, []);
 
   // Mock Data & Helpers (simplified for brevity, assume similar logic to before)
   const formatSymbol = (symbol: string) => symbol.split(":").pop() || symbol;
@@ -169,8 +190,12 @@ export function Header({ onNewTrade }: HeaderProps) {
           <DropdownMenuContent align="end" className="w-56 glass border-border text-foreground rounded-xl p-2">
             <DropdownMenuLabel className="text-muted-foreground text-xs">My Account</DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-border" />
-            <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive rounded-lg cursor-pointer">
-              <LogOut className="mr-2 h-4 w-4" /> Log out
+            <DropdownMenuItem
+              className="text-destructive focus:bg-destructive/10 focus:text-destructive rounded-lg cursor-pointer"
+              onClick={handleLogout}
+              disabled={loggingOut}
+            >
+              <LogOut className="mr-2 h-4 w-4" /> {loggingOut ? "Logging out..." : "Log out"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

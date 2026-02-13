@@ -31,7 +31,7 @@ export function ConfidenceIndex({ value }: ConfidenceIndexProps) {
       <div className="flex items-center justify-between z-10">
         <div>
           <h3 className="font-semibold text-foreground">Psychology Score</h3>
-          <p className="text-xs text-muted-foreground">AI Analysis • Last 30 Days</p>
+          <p className="text-xs text-muted-foreground">Based on Confidence & Satisfaction</p>
         </div>
         <div className="text-right">
           <span className="text-2xl font-bold text-indigo-400">{value}</span>

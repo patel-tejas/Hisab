@@ -34,7 +34,7 @@ export default function SignUpPage() {
 
     if (res.ok) {
       toast.success("Account created! Redirecting...");
-      setTimeout(() => router.push("/dashboard"), 800);
+      window.location.href = "/dashboard";
     } else {
       toast.error("Signup failed. Username may already exist.");
     }

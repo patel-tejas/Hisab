@@ -12,8 +12,9 @@ export interface Trade {
   outcome: "full-success" | "partial" | "breakeven" | "followed-plan" | "mistake"
   pnl: number
   pnlPercent: number
-  riskReward: string
+  riskReward?: string
   tradeAnalysis: string
+  notes?: string
   images?: string[]
   entryTime?: string
   exitTime?: string
@@ -23,7 +24,7 @@ export interface Trade {
   satisfaction: number
   emotionalState: "calm" | "overconfident" | "impatient" | "frustrated" | "anxious"
   mistakes: string[]
-  lessonsLearned: string
+  lessonsLearned?: string
 }
 
 export interface DashboardStats {

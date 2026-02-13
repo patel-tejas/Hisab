@@ -2,18 +2,13 @@
 "use client"
 
 import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { useState } from "react"
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts"
-import { cn } from "@/lib/utils"
 
 interface CumulativePnlChartProps {
   data: { date: string; pnl: number }[]
 }
 
 export function CumulativePnlChart({ data }: CumulativePnlChartProps) {
-  const [period, setPeriod] = useState<"D" | "W" | "M">("D")
-
   return (
     <Card className="p-6 glass-card relative overflow-hidden group">
       <div className="absolute top-0 right-0 p-4 opacity-50 text-indigo-500/20 group-hover:text-indigo-500/40 transition-colors pointer-events-none">
@@ -25,22 +20,6 @@ export function CumulativePnlChart({ data }: CumulativePnlChartProps) {
         <div>
           <h3 className="font-semibold text-foreground text-lg">Equity Curve</h3>
           <p className="text-sm text-muted-foreground">Cumulative P&L Over Time</p>
-        </div>
-        <div className="flex gap-1 bg-secondary/50 p-1 rounded-lg">
-          {(["D", "W", "M"] as const).map((p) => (
-            <Button
-              key={p}
-              variant={period === p ? "default" : "ghost"}
-              size="sm"
-              className={cn(
-                "h-7 w-8 p-0 text-xs transition-all",
-                period === p ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20" : "text-muted-foreground hover:text-foreground"
-              )}
-              onClick={() => setPeriod(p)}
-            >
-              {p}
-            </Button>
-          ))}
         </div>
       </div>
 

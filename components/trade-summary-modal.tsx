@@ -30,7 +30,15 @@ export function TradeSummaryModal({ trade, open, onOpenChange }: TradeSummaryMod
   }
 
   const formatDuration = () => {
-    return "2 days 4 hours"
+    if (!trade.entryTime || !trade.exitTime) return "N/A"
+    const [eh, em] = trade.entryTime.split(":").map(Number)
+    const [xh, xm] = trade.exitTime.split(":").map(Number)
+    let diffMins = (xh * 60 + xm) - (eh * 60 + em)
+    if (diffMins < 0) diffMins += 24 * 60
+    const hours = Math.floor(diffMins / 60)
+    const mins = diffMins % 60
+    if (hours === 0) return `${mins}m`
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`
   }
 
   const expectedRiskReward = () => {
@@ -188,7 +196,11 @@ export function TradeSummaryModal({ trade, open, onOpenChange }: TradeSummaryMod
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Final Risk/Reward</span>
-                    <span className="font-medium">{trade.riskReward}</span>
+                    <span className="font-medium">
+                      {trade.stopLoss && trade.entryPrice
+                        ? `1:${(Math.abs(trade.exitPrice - trade.entryPrice) / Math.abs(trade.entryPrice - trade.stopLoss)).toFixed(2)}`
+                        : "N/A"}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Trade Outcome</span>
@@ -256,8 +268,8 @@ export function TradeSummaryModal({ trade, open, onOpenChange }: TradeSummaryMod
                 />
               </div>
               <div>
-                <h4 className="font-semibold text-foreground mb-2">Lessons Learned</h4>
-                <p className="text-muted-foreground">{trade.lessonsLearned || "No lessons recorded."}</p>
+                <h4 className="font-semibold text-foreground mb-2">Notes</h4>
+                <p className="text-muted-foreground">{trade.notes || "No notes recorded."}</p>
               </div>
               {trade.mistakes.length > 0 && (
                 <div>
