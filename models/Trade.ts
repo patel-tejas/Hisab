@@ -10,6 +10,9 @@ export interface ITrade extends Document {
   entryPrice: number;
   exitPrice: number;
 
+  entryTime?: string;
+  exitTime?: string;
+
   totalAmount: number;
   pnl: number;
   pnlPercent: number;
@@ -42,6 +45,9 @@ const TradeSchema = new Schema<ITrade>(
     quantity: { type: Number, required: true },
     entryPrice: { type: Number, required: true },
     exitPrice: { type: Number, required: true },
+
+    entryTime: { type: String }, // HH:mm
+    exitTime: { type: String }, // HH:mm
 
     totalAmount: { type: Number, required: true },
     pnl: { type: Number, required: true },

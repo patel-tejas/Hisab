@@ -1,7 +1,5 @@
-"use client";
-
 import { useEffect, useState } from "react";
-import { Info, Brain, RotateCcw, Save } from "lucide-react";
+import { Info, Brain, RotateCcw, Save, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +11,8 @@ import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { emotionalStates, outcomes, mistakeOptions } from "@/lib/mock-data";
 import { AddStrategyModal } from "./add-strategy-modal";
+import { RichTextEditor } from "./rich-text-editor";
+import { supabase } from "@/utils/supabase/client";
 
 // ---------- DEFAULT SYMBOLS -----------
 const defaultSymbols = ["NIFTY 50", "BANKNIFTY", "SENSEX", "BTC", "ETH", "GOLD", "SILVER"];
@@ -27,7 +27,15 @@ const defaultQuantities: Record<string, number> = {
   SILVER: 30,
 };
 
-export function AddTradeModal({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+export function AddTradeModal({
+  open,
+  onOpenChange,
+  tradeToEdit,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  tradeToEdit?: any;
+}) {
   const [activeTab, setActiveTab] = useState<"general" | "psychology">("general");
 
   // ---------- FORM STATES (MAIN FIX) ----------
@@ -35,12 +43,16 @@ export function AddTradeModal({ open, onOpenChange }: { open: boolean; onOpenCha
   const [date, setDate] = useState("");
   const [entryPrice, setEntryPrice] = useState("");
   const [exitPrice, setExitPrice] = useState("");
+  const [entryTime, setEntryTime] = useState("");
+  const [exitTime, setExitTime] = useState("");
   const [quantity, setQuantity] = useState("");
   const [stopLoss, setStopLoss] = useState("");
   const [target, setTarget] = useState("");
 
   const [direction, setDirection] = useState("long");
   const [notes, setNotes] = useState("");
+  const [images, setImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   // Psychology tab states
   const [entryConfidence, setEntryConfidence] = useState([8]);
@@ -62,16 +74,45 @@ export function AddTradeModal({ open, onOpenChange }: { open: boolean; onOpenCha
       .then((list: string[]) => setStrategies(list));
   }, [open]);
 
+  // ---------- FILL FORM IF EDITING ----------
+  useEffect(() => {
+    if (open && tradeToEdit) {
+      setSymbol(tradeToEdit.symbol);
+      setDate(tradeToEdit.date.split("T")[0]); // Simplify date
+      setEntryPrice(tradeToEdit.entryPrice);
+      setExitPrice(tradeToEdit.exitPrice);
+      setEntryTime(tradeToEdit.entryTime || "");
+      setExitTime(tradeToEdit.exitTime || "");
+      setQuantity(String(tradeToEdit.quantity));
+      setStopLoss(tradeToEdit.stopLoss || "");
+      setTarget(tradeToEdit.target || "");
+      setNotes(tradeToEdit.notes || "");
+      setDirection(tradeToEdit.type || "long"); // Ensure "type" maps to "direction"
+      setSelectedStrategy(tradeToEdit.strategy || "");
+      setEntryConfidence([tradeToEdit.entryConfidence || 8]);
+      setSatisfaction([tradeToEdit.satisfaction || 9]);
+      setSelectedEmotional(tradeToEdit.emotionalState || "Calm");
+      setSelectedOutcome(tradeToEdit.outcome || "Full Success");
+      setSelectedMistakes(tradeToEdit.mistakes || ["No Mistakes"]);
+      setImages(tradeToEdit.images || []);
+    } else if (open && !tradeToEdit) {
+      handleReset();
+    }
+  }, [open, tradeToEdit]);
+
   // ---------- RESET ----------
   const handleReset = () => {
     setSymbol("");
     setDate("");
     setEntryPrice("");
     setExitPrice("");
+    setEntryTime("");
+    setExitTime("");
     setQuantity("");
     setStopLoss("");
     setTarget("");
     setNotes("");
+    setImages([]);
     setDirection("long");
     setSelectedStrategy("");
     setEntryConfidence([8]);
@@ -89,6 +130,42 @@ export function AddTradeModal({ open, onOpenChange }: { open: boolean; onOpenCha
     });
   };
 
+  // ---------- HANDLE FILE UPLOAD ----------
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    setUploading(true);
+    const file = e.target.files[0];
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from('trades')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data } = supabase.storage
+        .from('trades')
+        .getPublicUrl(filePath);
+
+      setImages((prev) => [...prev, data.publicUrl]);
+    } catch (error: any) {
+      alert('Error uploading image: ' + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+
   // ---------- SAVE TRADE ----------
   async function handleSaveTrade() {
     const pnl = (Number(exitPrice) - Number(entryPrice)) * Number(quantity);
@@ -101,6 +178,8 @@ export function AddTradeModal({ open, onOpenChange }: { open: boolean; onOpenCha
       quantity: Number(quantity),
       entryPrice: Number(entryPrice),
       exitPrice: Number(exitPrice),
+      entryTime,
+      exitTime,
       totalAmount: Number(entryPrice) * Number(quantity),
       pnl,
       pnlPercent,
@@ -113,23 +192,27 @@ export function AddTradeModal({ open, onOpenChange }: { open: boolean; onOpenCha
       emotionalState: selectedEmotional,
       mistakes: selectedMistakes,
       notes,
-      images: [],
+      images,
     };
 
     const res = await fetch("/api/trades", {
-      method: "POST",
-      body: JSON.stringify(trade),
+      method: tradeToEdit ? "PUT" : "POST",
+      body: JSON.stringify(tradeToEdit ? { ...trade, _id: tradeToEdit._id } : trade),
     });
 
-    if (res.ok) onOpenChange(false);
+    if (res.ok) {
+      onOpenChange(false);
+      // We might want to trigger a refresh here or let the parent handle it
+      window.location.reload(); // Simple refresh for now
+    }
     else alert("Trade could not be saved.");
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Trade</DialogTitle>
+          <DialogTitle>{tradeToEdit ? "Edit Trade" : "Add New Trade"}</DialogTitle>
         </DialogHeader>
 
         {/* ---------- TABS ---------- */}
@@ -196,7 +279,19 @@ export function AddTradeModal({ open, onOpenChange }: { open: boolean; onOpenCha
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label>Date *</Label>
-                <Input value={date} type="date" onChange={(e) => setDate(e.target.value)} />
+                <div className="flex gap-2">
+                  <Input value={date} type="date" onChange={(e) => setDate(e.target.value)} />
+                </div>
+              </div>
+
+              <div>
+                <Label>Entry Time</Label>
+                <Input value={entryTime} type="time" onChange={(e) => setEntryTime(e.target.value)} />
+              </div>
+
+              <div>
+                <Label>Exit Time</Label>
+                <Input value={exitTime} type="time" onChange={(e) => setExitTime(e.target.value)} />
               </div>
 
               <div>
@@ -298,10 +393,40 @@ export function AddTradeModal({ open, onOpenChange }: { open: boolean; onOpenCha
               </Select>
             </div>
 
+            {/* Analysis Images */}
+            <div>
+              <Label>Chart Screenshots</Label>
+              <div className="mt-2 flex flex-wrap gap-4">
+                {images.map((img, index) => (
+                  <div key={index} className="relative w-24 h-24 border rounded-lg overflow-hidden group">
+                    <img src={img} alt={`Screenshot ${index + 1}`} className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => removeImage(index)}
+                      className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+
+                <label className="w-24 h-24 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors">
+                  <Upload className="h-6 w-6 text-muted-foreground mb-1" />
+                  <span className="text-xs text-muted-foreground">{uploading ? "..." : "Add"}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                    disabled={uploading}
+                  />
+                </label>
+              </div>
+            </div>
+
             {/* Notes */}
             <div>
               <Label>Trade Analysis *</Label>
-              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
+              <RichTextEditor content={notes} onChange={setNotes} />
             </div>
           </div>
         )}
@@ -377,7 +502,7 @@ export function AddTradeModal({ open, onOpenChange }: { open: boolean; onOpenCha
           </Button>
 
           <Button onClick={handleSaveTrade}>
-            <Save className="mr-2 h-4 w-4" /> Save Trade
+            <Save className="mr-2 h-4 w-4" /> {tradeToEdit ? "Update Trade" : "Save Trade"}
           </Button>
         </div>
 

@@ -14,6 +14,9 @@ export interface Trade {
   pnlPercent: number
   riskReward: string
   tradeAnalysis: string
+  images?: string[]
+  entryTime?: string
+  exitTime?: string
 
   // Psychology fields
   entryConfidence: number

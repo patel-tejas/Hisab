@@ -42,3 +42,37 @@ export async function GET() {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+
+export async function PUT(req: Request) {
+  try {
+    await db();
+    const user = await verifyUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const body = await req.json();
+    const { _id, ...updateData } = body;
+
+    if (!_id) {
+      return NextResponse.json({ error: "Trade ID is required" }, { status: 400 });
+    }
+
+    console.log("Updating trade:", _id, updateData);
+
+    const updatedTrade = await Trade.findOneAndUpdate(
+      { _id, user: user.id },
+      updateData,
+      { new: true }
+    );
+
+    if (!updatedTrade) {
+      return NextResponse.json({ error: "Trade not found or unauthorized" }, { status: 404 });
+    }
+
+    console.log("Updated trade:", updatedTrade);
+
+    return NextResponse.json(updatedTrade);
+  } catch (err: any) {
+    console.log("Error updating trade:", err);
+    return NextResponse.json({ error: err.message }, { status: 400 });
+  }
+}

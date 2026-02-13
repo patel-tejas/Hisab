@@ -8,11 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TradeSummaryModal } from "@/components/trade-summary-modal";
+import { AddTradeModal } from "@/components/add-trade-modal";
 import { cn } from "@/lib/utils";
 
 export default function TradesPage() {
   const [trades, setTrades] = useState<any[]>([]);
   const [selectedTrade, setSelectedTrade] = useState<any | null>(null);
+  const [isAddTradeOpen, setIsAddTradeOpen] = useState(false);
+  const [tradeToEdit, setTradeToEdit] = useState<any | null>(null);
 
   // Fetch trades from DB
   useEffect(() => {
@@ -79,6 +82,7 @@ export default function TradesPage() {
               <SelectItem value="default">Default</SelectItem>
               <SelectItem value="date-desc">Date (Newest)</SelectItem>
               <SelectItem value="date-asc">Date (Oldest)</SelectItem>
+              <SelectItem value="date-asc">Date (Oldest)</SelectItem>
               <SelectItem value="pnl-high">P&L (High)</SelectItem>
               <SelectItem value="pnl-low">P&L (Low)</SelectItem>
             </SelectContent>
@@ -89,7 +93,10 @@ export default function TradesPage() {
             Filter Trades
           </Button>
 
-          <Button>
+          <Button onClick={() => {
+            setTradeToEdit(null);
+            setIsAddTradeOpen(true);
+          }}>
             <Plus className="mr-2 h-4 w-4" />
             New Trade
           </Button>
@@ -181,7 +188,16 @@ export default function TradesPage() {
 
                 <TableCell>
                   <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                    <Button variant="ghost" size="icon" className="text-primary">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTradeToEdit(trade);
+                        setIsAddTradeOpen(true);
+                      }}
+                    >
                       <Pencil className="h-4 w-4" />
                     </Button>
 
@@ -206,6 +222,12 @@ export default function TradesPage() {
         trade={selectedTrade}
         open={!!selectedTrade}
         onOpenChange={() => setSelectedTrade(null)}
+      />
+
+      <AddTradeModal
+        open={isAddTradeOpen}
+        onOpenChange={setIsAddTradeOpen}
+        tradeToEdit={tradeToEdit}
       />
     </div>
   );
