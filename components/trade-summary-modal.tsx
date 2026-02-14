@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Info, FileText, ImageIcon, Tag, Shield, Trophy, Star, X } from "lucide-react"
+import { Tag, Shield, Trophy, Star, FileText, ImageIcon, X, AlertTriangle, BookOpen } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -13,21 +13,10 @@ interface TradeSummaryModalProps {
   onOpenChange: (open: boolean) => void
 }
 
-type Tab = "general" | "journal" | "media"
-
 export function TradeSummaryModal({ trade, open, onOpenChange }: TradeSummaryModalProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("general")
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
   if (!trade) return null
-
-  const calculateRiskRewardPercent = () => {
-    const risk = Math.abs(trade.entryPrice - trade.stopLoss)
-    const reward = Math.abs(trade.target - trade.entryPrice)
-    const riskPercent = (risk / trade.entryPrice) * 100
-    const rewardPercent = (reward / trade.entryPrice) * 100
-    return `${riskPercent.toFixed(0)}% / -${rewardPercent.toFixed(0)}%`
-  }
 
   const formatDuration = () => {
     if (!trade.entryTime || !trade.exitTime) return "N/A"
@@ -42,257 +31,226 @@ export function TradeSummaryModal({ trade, open, onOpenChange }: TradeSummaryMod
   }
 
   const expectedRiskReward = () => {
+    if (!trade.stopLoss || !trade.target || !trade.entryPrice) return "N/A"
     const risk = Math.abs(trade.entryPrice - trade.stopLoss)
+    if (risk === 0) return "N/A"
     const reward = Math.abs(trade.target - trade.entryPrice)
-    return `1:${(reward / risk).toFixed(0)}`
+    return `1:${(reward / risk).toFixed(1)}`
   }
+
+  const actualRiskReward = () => {
+    if (!trade.stopLoss || !trade.entryPrice || !trade.exitPrice) return "N/A"
+    const risk = Math.abs(trade.entryPrice - trade.stopLoss)
+    if (risk === 0) return "N/A"
+    const actual = Math.abs(trade.exitPrice - trade.entryPrice)
+    return `1:${(actual / risk).toFixed(2)}`
+  }
+
+  const tradeDate = new Date(trade.date).toLocaleDateString("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  })
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="flex flex-row items-center justify-between">
-            <DialogTitle className="text-xl font-semibold">Trade Summary</DialogTitle>
-          </DialogHeader>
-
-          {/* ... (rest of the modal content remains the same until lightbox) ... */}
-
-          {/* Tabs */}
-          <div className="flex border-b border-border">
-            <button
-              className={cn(
-                "flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors",
-                activeTab === "general"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
-              )}
-              onClick={() => setActiveTab("general")}
-            >
-              <Info className="h-4 w-4" />
-              General
-            </button>
-            <button
-              className={cn(
-                "flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors",
-                activeTab === "journal"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
-              )}
-              onClick={() => setActiveTab("journal")}
-            >
-              <FileText className="h-4 w-4" />
-              Journal
-            </button>
-            <button
-              className={cn(
-                "flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors",
-                activeTab === "media"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
-              )}
-              onClick={() => setActiveTab("media")}
-            >
-              <ImageIcon className="h-4 w-4" />
-              Media
-            </button>
+        <DialogContent className="max-w-[65vw] max-h-[92vh] overflow-y-auto p-0">
+          {/* Header Banner */}
+          <div className={cn(
+            "px-6 py-5 border-b",
+            trade.pnl >= 0
+              ? "bg-green-500/10 border-green-500/20"
+              : "bg-red-500/10 border-red-500/20"
+          )}>
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <DialogTitle className="text-2xl font-bold tracking-tight">
+                    {trade.symbol}
+                  </DialogTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {tradeDate} • {trade.direction === "long" ? "📈 Long" : "📉 Short"} • {trade.strategy}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className={cn(
+                    "text-3xl font-bold",
+                    (trade.pnl ?? 0) >= 0 ? "text-green-500" : "text-red-500"
+                  )}>
+                    {(trade.pnl ?? 0) >= 0 ? "+" : ""}₹{(trade.pnl ?? 0).toLocaleString("en-IN")}
+                  </p>
+                  <p className={cn(
+                    "text-sm font-medium",
+                    (trade.pnl ?? 0) >= 0 ? "text-green-500/80" : "text-red-500/80"
+                  )}>
+                    {(trade.pnlPercent ?? 0) >= 0 ? "+" : ""}{(trade.pnlPercent ?? 0).toFixed(2)}%
+                  </p>
+                </div>
+              </div>
+            </DialogHeader>
           </div>
 
-          {/* General Tab Content */}
-          {activeTab === "general" && (
-            <div className="grid grid-cols-2 gap-8 py-4">
-              {/* Left Column - Trade Overview */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-foreground font-semibold">
-                  <Tag className="h-4 w-4" />
+          <div className="p-6 space-y-8">
+
+            {/* === SECTION 1: Trade Details Grid === */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+              {/* Trade Overview */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 font-semibold text-foreground mb-3">
+                  <Tag className="h-4 w-4 text-blue-500" />
                   Trade Overview
                 </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Symbol</span>
-                    <span className="font-medium">{trade.symbol}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Direction</span>
-                    <span className={cn("font-medium", trade.direction === "long" ? "text-green-600" : "text-red-600")}>
-                      {trade.direction === "long" ? "Long" : "Short"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Entry Price</span>
-                    <span className="font-medium">{trade.entryPrice}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Exit Price</span>
-                    <span className="font-medium">{trade.exitPrice}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Trade Session</span>
-                    <span className="font-medium">{formatDuration()}</span>
-                  </div>
-                  {trade.entryTime && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Entry Time</span>
-                      <span className="font-medium">{trade.entryTime}</span>
-                    </div>
-                  )}
-                  {trade.exitTime && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Exit Time</span>
-                      <span className="font-medium">{trade.exitTime}</span>
-                    </div>
-                  )}
+                <div className="bg-muted/40 rounded-lg p-4 space-y-3">
+                  <Row label="Entry Price" value={trade.entryPrice != null ? `₹${trade.entryPrice.toLocaleString("en-IN")}` : "N/A"} />
+                  <Row label="Exit Price" value={trade.exitPrice != null ? `₹${trade.exitPrice.toLocaleString("en-IN")}` : "N/A"} />
+                  <Row label="Quantity" value={trade.quantity != null ? `${trade.quantity} Qty` : "N/A"} />
+                  {trade.entryTime && <Row label="Entry Time" value={trade.entryTime} />}
+                  {trade.exitTime && <Row label="Exit Time" value={trade.exitTime} />}
+                  <Row label="Duration" value={formatDuration()} />
                 </div>
               </div>
 
-              {/* Right Column - Risk Management */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-foreground font-semibold">
-                  <Shield className="h-4 w-4" />
+              {/* Risk Management */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 font-semibold text-foreground mb-3">
+                  <Shield className="h-4 w-4 text-orange-500" />
                   Risk Management
                 </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Position Size</span>
-                    <span className="font-medium">{trade.quantity} Qty</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Stop Loss</span>
-                    <span className="font-medium text-red-600">{trade.stopLoss}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Target</span>
-                    <span className="font-medium text-green-600">{trade.target}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Expected Risk/Reward</span>
-                    <span className="font-medium">{expectedRiskReward()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Risk/Reward %</span>
-                    <span className="font-medium">{calculateRiskRewardPercent()}</span>
-                  </div>
+                <div className="bg-muted/40 rounded-lg p-4 space-y-3">
+                  <Row label="Stop Loss" value={trade.stopLoss != null ? `₹${trade.stopLoss.toLocaleString("en-IN")}` : "N/A"} valueClass="text-red-500" />
+                  <Row label="Target" value={trade.target != null ? `₹${trade.target.toLocaleString("en-IN")}` : "N/A"} valueClass="text-green-500" />
+                  <Row label="Expected R:R" value={expectedRiskReward()} />
+                  <Row label="Actual R:R" value={actualRiskReward()} />
+                  <Row label="Outcome" value={
+                    trade.outcome === "full-success"
+                      ? "✅ Full Success"
+                      : trade.outcome === "partial"
+                        ? "⚡ Partial"
+                        : trade.outcome === "breakeven"
+                          ? "➖ Breakeven"
+                          : trade.outcome === "mistake"
+                            ? "❌ Mistake"
+                            : trade.outcome.charAt(0).toUpperCase() + trade.outcome.slice(1)
+                  } />
                 </div>
               </div>
+            </div>
 
-              {/* Performance */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-foreground font-semibold">
-                  <Trophy className="h-4 w-4" />
-                  Performance
-                </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">P&L</span>
-                    <span className={cn("font-medium", trade.pnl >= 0 ? "text-green-600" : "text-red-600")}>
-                      {trade.pnl >= 0 ? "+" : ""}
-                      {trade.pnl.toLocaleString("en-IN")}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">P&L %</span>
-                    <span className={cn("font-medium", trade.pnl >= 0 ? "text-green-600" : "text-red-600")}>
-                      {trade.pnlPercent.toFixed(2)}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Final Risk/Reward</span>
-                    <span className="font-medium">
-                      {trade.stopLoss && trade.entryPrice
-                        ? `1:${(Math.abs(trade.exitPrice - trade.entryPrice) / Math.abs(trade.entryPrice - trade.stopLoss)).toFixed(2)}`
-                        : "N/A"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Trade Outcome</span>
-                    <span className="font-medium">
-                      {trade.outcome === "full-success"
-                        ? "Full Success"
-                        : trade.outcome.charAt(0).toUpperCase() + trade.outcome.slice(1)}
-                    </span>
-                  </div>
-                </div>
+            {/* === SECTION 2: Psychology === */}
+            <div>
+              <div className="flex items-center gap-2 font-semibold text-foreground mb-3">
+                <Star className="h-4 w-4 text-amber-500" />
+                Psychology & Evaluation
               </div>
-
-              {/* Trade Evaluation */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-foreground font-semibold">
-                  <Star className="h-4 w-4" />
-                  Trade Evaluation
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Entry Confidence</span>
-                    <div className="flex items-center gap-2">
-                      <div className="h-2 w-24 rounded-full bg-muted overflow-hidden">
+              <div className="bg-muted/40 rounded-lg p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  {/* Entry Confidence */}
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground mb-1">Entry Confidence</p>
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="h-2 w-20 rounded-full bg-muted overflow-hidden">
                         <div
-                          className="h-full bg-amber-500 rounded-full"
+                          className="h-full bg-amber-500 rounded-full transition-all"
                           style={{ width: `${trade.entryConfidence * 10}%` }}
                         />
                       </div>
-                      <span className="font-medium w-4">{trade.entryConfidence}</span>
+                      <span className="text-sm font-bold">{trade.entryConfidence}/10</span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Satisfaction</span>
-                    <div className="flex items-center gap-2">
-                      <div className="h-2 w-24 rounded-full bg-muted overflow-hidden">
+                  {/* Satisfaction */}
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground mb-1">Satisfaction</p>
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="h-2 w-20 rounded-full bg-muted overflow-hidden">
                         <div
-                          className="h-full bg-green-500 rounded-full"
+                          className="h-full bg-green-500 rounded-full transition-all"
                           style={{ width: `${trade.satisfaction * 10}%` }}
                         />
                       </div>
-                      <span className="font-medium w-4">{trade.satisfaction}</span>
+                      <span className="text-sm font-bold">{trade.satisfaction}/10</span>
                     </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Emotional State</span>
-                    <span className="font-medium capitalize">{trade.emotionalState}</span>
+                  {/* Emotional State */}
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground mb-1">Emotional State</p>
+                    <span className={cn(
+                      "text-sm font-semibold capitalize px-2 py-0.5 rounded-full",
+                      trade.emotionalState === "calm" ? "bg-green-500/20 text-green-500" :
+                        trade.emotionalState === "overconfident" ? "bg-amber-500/20 text-amber-500" :
+                          "bg-red-500/20 text-red-500"
+                    )}>
+                      {trade.emotionalState}
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Strategy</span>
-                    <span className="font-medium">{trade.strategy}</span>
+                  {/* Strategy */}
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground mb-1">Strategy</p>
+                    <span className="text-sm font-semibold">{trade.strategy}</span>
                   </div>
                 </div>
               </div>
             </div>
-          )}
 
-          {/* Journal Tab Content */}
-          {activeTab === "journal" && (
-            <div className="py-4 space-y-6">
-              <div>
-                <h4 className="font-semibold text-foreground mb-2">Trade Analysis</h4>
-                <div
-                  className="text-muted-foreground prose prose-invert max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
-                  dangerouslySetInnerHTML={{ __html: trade.tradeAnalysis }}
-                />
+            {/* === SECTION 3: Journal / Analysis === */}
+            <div>
+              <div className="flex items-center gap-2 font-semibold text-foreground mb-3">
+                <FileText className="h-4 w-4 text-purple-500" />
+                Trade Analysis & Notes
               </div>
-              <div>
-                <h4 className="font-semibold text-foreground mb-2">Notes</h4>
-                <p className="text-muted-foreground">{trade.notes || "No notes recorded."}</p>
+              <div className="bg-muted/40 rounded-lg p-4 space-y-4">
+                {trade.tradeAnalysis && (
+                  <div>
+                    <h4 className="text-xs uppercase text-muted-foreground font-semibold mb-2">Analysis</h4>
+                    <div
+                      className="text-sm text-foreground/90 prose prose-invert max-w-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                      dangerouslySetInnerHTML={{ __html: trade.tradeAnalysis }}
+                    />
+                  </div>
+                )}
+                {trade.notes && (
+                  <div>
+                    <h4 className="text-xs uppercase text-muted-foreground font-semibold mb-2">Notes</h4>
+                    <p className="text-sm text-foreground/80">{trade.notes}</p>
+                  </div>
+                )}
+                {trade.lessonsLearned && (
+                  <div>
+                    <h4 className="text-xs uppercase text-muted-foreground font-semibold mb-2 flex items-center gap-1">
+                      <BookOpen className="h-3 w-3" /> Lessons Learned
+                    </h4>
+                    <p className="text-sm text-foreground/80">{trade.lessonsLearned}</p>
+                  </div>
+                )}
+                {trade.mistakes && trade.mistakes.length > 0 && (
+                  <div>
+                    <h4 className="text-xs uppercase text-muted-foreground font-semibold mb-2 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3 text-amber-500" /> Mistakes
+                    </h4>
+                    <ul className="list-disc list-inside text-sm text-foreground/80 space-y-1">
+                      {trade.mistakes.map((mistake, index) => (
+                        <li key={index}>{mistake}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
-              {trade.mistakes.length > 0 && (
-                <div>
-                  <h4 className="font-semibold text-foreground mb-2">Mistakes Made</h4>
-                  <ul className="list-disc list-inside text-muted-foreground">
-                    {trade.mistakes.map((mistake, index) => (
-                      <li key={index}>{mistake}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </div>
-          )}
 
-          {/* Media Tab Content */}
-          {activeTab === "media" && (
-            <div className="py-4">
-              {trade.images && trade.images.length > 0 ? (
-                <div className="grid grid-cols-2 gap-4">
+            {/* === SECTION 4: Media === */}
+            {trade.images && trade.images.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 font-semibold text-foreground mb-3">
+                  <ImageIcon className="h-4 w-4 text-cyan-500" />
+                  Screenshots ({trade.images.length})
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {trade.images.map((img, index) => (
                     <div
                       key={index}
-                      className="relative aspect-video rounded-lg overflow-hidden border bg-muted cursor-pointer hover:opacity-90 transition-opacity"
+                      className="relative aspect-video rounded-lg overflow-hidden border border-border bg-muted cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
                       onClick={() => setSelectedImage(img)}
                     >
                       <img
@@ -303,18 +261,13 @@ export function TradeSummaryModal({ trade, open, onOpenChange }: TradeSummaryMod
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                  <ImageIcon className="h-12 w-12 mb-4 opacity-50" />
-                  <p>No media attached to this trade.</p>
-                </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
 
-          {/* Footer */}
-          <div className="flex justify-end pt-4 border-t border-border">
-            <Button onClick={() => onOpenChange(false)}>Close</Button>
+            {/* Footer */}
+            <div className="flex justify-end pt-2 border-t border-border">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -342,5 +295,15 @@ export function TradeSummaryModal({ trade, open, onOpenChange }: TradeSummaryMod
         </DialogContent>
       </Dialog>
     </>
+  )
+}
+
+/* Reusable row for key-value pairs */
+function Row({ label, value, valueClass }: { label: string; value: string | number; valueClass?: string }) {
+  return (
+    <div className="flex justify-between items-center">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className={cn("text-sm font-medium", valueClass)}>{value}</span>
+    </div>
   )
 }

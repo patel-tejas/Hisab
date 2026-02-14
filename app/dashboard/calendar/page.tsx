@@ -4,15 +4,18 @@ import { useState, useMemo, useEffect } from "react";
 import {
   ChevronLeft,
   ChevronRight,
-  TrendingUp,
   Trophy,
-  Activity,
-  Target,
+  ArrowUpRight,
+  ArrowDownRight,
+  Clock,
+  Eye,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { TradeSummaryModal } from "@/components/trade-summary-modal";
+import { Trade } from "@/lib/types";
 
 // Types
 interface DayData {
@@ -25,7 +28,10 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [trades, setTrades] = useState<any[]>([]);
   const [selectedTrades, setSelectedTrades] = useState<any[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [viewTrade, setViewTrade] = useState<Trade | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   // FETCH REAL TRADES
   useEffect(() => {
@@ -82,24 +88,128 @@ export default function CalendarPage() {
     return data;
   }, [trades]);
 
-  // === WEEKLY SUMMARY ===
+  // === WEEKLY SUMMARY (Current Month Only) ===
   const weeklySummary = useMemo(() => {
-    const weekMap: Record<number, { pnl: number; trades: number }> = {};
+    // 1. Generate weekly buckets for the current month
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const lastDay = new Date(year, month + 1, 0).getDate();
 
+    const weeks: { start: number; end: number; label: string; pnl: number; trades: number; wins: number }[] = [];
+
+    // Create chunks: 1-7, 8-14, 15-21, 22-end
+    let startDay = 1;
+    while (startDay <= lastDay) {
+      let endDay = startDay + 6;
+      if (endDay > lastDay) endDay = lastDay;
+
+      const monthShort = currentDate.toLocaleString('default', { month: 'short' });
+      const label = `${monthShort} ${startDay} - ${monthShort} ${endDay}`;
+
+      weeks.push({ start: startDay, end: endDay, label, pnl: 0, trades: 0, wins: 0 });
+      startDay += 7;
+    }
+
+    // 2. Fill buckets with trade data
     trades.forEach((t) => {
-      const date = new Date(t.date);
-      const weekNum = Math.ceil((date.getDate() - date.getDay()) / 7) + 1;
+      const d = new Date(t.date);
+      // Filter: Must be in selected month/year
+      if (d.getMonth() !== month || d.getFullYear() !== year) return;
 
-      if (!weekMap[weekNum]) {
-        weekMap[weekNum] = { pnl: 0, trades: 0 };
+      const day = d.getDate();
+      const week = weeks.find(w => day >= w.start && day <= w.end);
+
+      if (week) {
+        week.pnl += t.pnl;
+        week.trades += 1;
+        if (t.pnl > 0) week.wins += 1;
       }
-
-      weekMap[weekNum].pnl += t.pnl;
-      weekMap[weekNum].trades += 1;
     });
 
-    return weekMap;
-  }, [trades]);
+    return weeks;
+  }, [trades, currentDate]);
+
+  // === MONTHLY HIGHLIGHTS: HEATMAP, STREAKS, INSIGHTS ===
+  const monthlyHighlights = useMemo(() => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    // Filter trades for current month
+    const monthTrades = trades.filter((t) => {
+      const d = new Date(t.date);
+      return d.getMonth() === month && d.getFullYear() === year;
+    });
+
+    // 1. Heatmap Max PnL — use same key format as calendarData
+    let maxDailyPnl = 0;
+    const dailyPnls: Record<string, number> = {};
+
+    monthTrades.forEach((t) => {
+      const d = new Date(t.date);
+      const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      dailyPnls[dateKey] = (dailyPnls[dateKey] || 0) + t.pnl;
+    });
+
+    Object.values(dailyPnls).forEach((pnl) => {
+      if (Math.abs(pnl) > maxDailyPnl) maxDailyPnl = Math.abs(pnl);
+    });
+
+    // 2. Streaks (Consecutive profitable CALENDAR days, not just trading days)
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    const streakDates = new Set<string>();
+    let currentStreak: string[] = [];
+
+    for (let d = 1; d <= lastDay; d++) {
+      const dateKey = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+
+      if (dailyPnls[dateKey] && dailyPnls[dateKey] > 0) {
+        currentStreak.push(dateKey);
+      } else if (dailyPnls[dateKey] !== undefined) {
+        // Loss day — flush streak
+        if (currentStreak.length >= 3) {
+          currentStreak.forEach((dk) => streakDates.add(dk));
+        }
+        currentStreak = [];
+      }
+      // Days with no trades: don't break streak, just skip
+    }
+    // Flush remaining streak at month end
+    if (currentStreak.length >= 3) {
+      currentStreak.forEach((dk) => streakDates.add(dk));
+    }
+
+    // 3. Best Day Analysis
+    const dayStats: Record<number, { wins: number; total: number }> = {};
+    monthTrades.forEach((t) => {
+      const day = new Date(t.date).getDay();
+      if (!dayStats[day]) dayStats[day] = { wins: 0, total: 0 };
+      dayStats[day].total++;
+      if (t.pnl > 0) dayStats[day].wins++;
+    });
+
+    let bestDay = "";
+    let bestWinRate = -1;
+    const days = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
+
+    Object.entries(dayStats).forEach(([day, stats]) => {
+      if (stats.total < 2) return;
+      const wr = (stats.wins / stats.total) * 100;
+      if (wr > bestWinRate) {
+        bestWinRate = wr;
+        bestDay = days[Number(day)];
+      }
+    });
+
+    return { maxDailyPnl, streakDates, bestDay, bestWinRate };
+  }, [trades, currentDate]);
 
   // === CALENDAR GRID ===
   const generateCalendar = () => {
@@ -129,6 +239,7 @@ export default function CalendarPage() {
 
     if (dayInfo) {
       setSelectedTrades(dayInfo.items);
+      setSelectedDate(key);
       setModalOpen(true);
     }
   };
@@ -186,22 +297,29 @@ export default function CalendarPage() {
         <h2 className="font-semibold mb-3">📊 Weekly Performance</h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Object.entries(weeklySummary).map(([week, data]) => (
-            <Card key={week} className="p-4 bg-muted/50 shadow-sm scale-in">
-              <h3 className="font-medium">Week {week}</h3>
+          {weeklySummary.map((week, index) => (
+            <Card key={index} className="p-4 bg-muted/50 shadow-sm scale-in">
+              <h3 className="text-sm font-medium text-muted-foreground mb-1">{week.label}</h3>
 
-              <p
-                className={cn(
-                  "font-bold",
-                  data.pnl >= 0 ? "text-green-600" : "text-red-600"
+              <div className="flex justify-between items-baseline mb-2">
+                <p
+                  className={cn(
+                    "text-xl font-bold",
+                    week.pnl >= 0 ? "text-green-600" : "text-red-600"
+                  )}
+                >
+                  {week.pnl >= 0 ? "+" : "-"}₹
+                  {Math.abs(week.pnl).toLocaleString("en-IN")}
+                </p>
+                {week.trades > 0 && (
+                  <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-muted text-foreground">
+                    {Math.round((week.wins / week.trades) * 100)}% WR
+                  </span>
                 )}
-              >
-                {data.pnl >= 0 ? "+" : "-"}₹
-                {Math.abs(data.pnl).toLocaleString("en-IN")}
-              </p>
+              </div>
 
               <p className="text-xs text-muted-foreground">
-                {data.trades} trades
+                {week.trades} trades
               </p>
             </Card>
           ))}
@@ -240,36 +358,68 @@ export default function CalendarPage() {
 
             const dayInfo = calendarData[key];
 
+            // Heatmap Opacity
+            let opacity = 0.1; // default low opacity
+            let colorClass = "bg-muted/30";
+
+            if (dayInfo) {
+              const intensity = monthlyHighlights.maxDailyPnl > 0
+                ? Math.min(Math.abs(dayInfo.pnl) / monthlyHighlights.maxDailyPnl, 1)
+                : 0;
+
+              // Scale opacity between 0.2 and 0.9 based on PnL size relative to max
+              const scaledOpacity = 0.2 + (intensity * 0.7);
+
+              if (dayInfo.pnl > 0) {
+                colorClass = `bg-green-500`;
+                // We'll apply opacity via style
+              } else if (dayInfo.pnl < 0) {
+                colorClass = `bg-red-500`;
+              }
+
+              // Apply opacity style directly since Tailwind dynamic opacity is tricky with arbitrary values
+              // Actually, better to use rgba or hsla, but let's try a style override for background
+            }
+
+            const isStreak = monthlyHighlights.streakDates.has(key);
+
             return (
               <div
                 key={idx}
                 onClick={() => openDateTrades(day)}
-                className={cn(
-                  "h-24 rounded-lg p-2 cursor-pointer transition-all duration-200 hover:scale-[1.03] hover:shadow-md",
-                  dayInfo
+                className="h-24 rounded-lg p-2 cursor-pointer transition-all duration-200 hover:scale-[1.03] hover:shadow-md relative overflow-hidden text-foreground/80 border border-border/40"
+                style={{
+                  backgroundColor: dayInfo
                     ? dayInfo.pnl >= 0
-                      ? "bg-green-50"
-                      : "bg-red-50"
-                    : "bg-muted/30"
-                )}
+                      ? `rgba(34, 197, 94, ${0.1 + (Math.min(Math.abs(dayInfo.pnl) / (monthlyHighlights.maxDailyPnl || 1), 1) * 0.6)})` // Green
+                      : `rgba(239, 68, 68, ${0.1 + (Math.min(Math.abs(dayInfo.pnl) / (monthlyHighlights.maxDailyPnl || 1), 1) * 0.6)})` // Red
+                    : undefined
+                }}
               >
-                <div className="text-sm font-medium text-muted-foreground">
-                  {day}
+                <div className="flex justify-between items-start">
+                  <span className="text-sm font-medium opacity-70">
+                    {day}
+                  </span>
+                  {isStreak && (
+                    <span className="text-base animate-pulse" title="Winning Streak! (3+ Days)">
+                      🔥
+                    </span>
+                  )}
                 </div>
 
                 {dayInfo && (
-                  <div className="mt-2">
+                  <div className="mt-2 text-center md:text-left">
                     <p
                       className={cn(
-                        "text-sm font-semibold",
-                        dayInfo.pnl >= 0 ? "text-green-600" : "text-red-600"
+                        "text-sm font-bold truncate",
+                        dayInfo.pnl >= 0 ? "text-green-700 dark:text-green-300" : "text-red-700 dark:text-red-300"
                       )}
                     >
                       {dayInfo.pnl >= 0 ? "+" : "-"}₹
                       {Math.abs(dayInfo.pnl).toLocaleString("en-IN")}
                     </p>
 
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[10px] text-muted-foreground/80 font-medium mt-0.5">
                       {dayInfo.trades} trades
                     </p>
                   </div>
@@ -280,39 +430,153 @@ export default function CalendarPage() {
         </div>
       </Card>
 
+      {/* MONTHLY INSIGHTS */}
+      {monthlyHighlights.bestDay && (
+        <Card className="p-6 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border-indigo-500/20">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-indigo-500/20 rounded-full text-indigo-500">
+              <Trophy className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg">Monthly Insight</h3>
+              <p className="text-muted-foreground">
+                You performed best on <span className="font-bold text-foreground">{monthlyHighlights.bestDay}s</span> this month,
+                with a <span className="font-bold text-green-500">{monthlyHighlights.bestWinRate.toFixed(0)}% Win Rate</span>.
+                {monthlyHighlights.streakDates.size > 0 && <span> You also had <strong>{monthlyHighlights.streakDates.size} days</strong> part of winning streaks! 🔥</span>}
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* DATE TRADE MODAL */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Trades on this day</DialogTitle>
-          </DialogHeader>
-
-          {selectedTrades.length === 0 ? (
-            <p className="text-muted-foreground">No trades on this date.</p>
-          ) : (
-            <div className="space-y-3">
-              {selectedTrades.map((trade, i) => (
-                <Card key={i} className="p-3 border">
-                  <div className="flex justify-between">
-                    <p className="font-medium">{trade.symbol}</p>
-                    <p
-                      className={cn(
-                        "font-semibold",
-                        trade.pnl >= 0 ? "text-green-600" : "text-red-600"
-                      )}
-                    >
-                      {trade.pnl >= 0 ? "+" : "-"}₹
-                      {Math.abs(trade.pnl).toLocaleString("en-IN")}
-                    </p>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden">
+          {/* Header Banner */}
+          {(() => {
+            const dayPnl = selectedTrades.reduce((s, t) => s + (t.pnl || 0), 0);
+            const wins = selectedTrades.filter(t => (t.pnl || 0) > 0).length;
+            const losses = selectedTrades.length - wins;
+            const displayDate = selectedDate ? new Date(selectedDate + "T00:00:00").toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "";
+            return (
+              <>
+                <div className={cn(
+                  "px-6 py-5 border-b",
+                  dayPnl >= 0 ? "bg-green-500/10 border-green-500/20" : "bg-red-500/10 border-red-500/20"
+                )}>
+                  <DialogHeader>
+                    <DialogTitle className="text-lg font-bold">{displayDate}</DialogTitle>
+                  </DialogHeader>
+                  <div className="flex items-center gap-6 mt-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Day P&L</p>
+                      <p className={cn("text-2xl font-bold", dayPnl >= 0 ? "text-green-500" : "text-red-500")}>
+                        {dayPnl >= 0 ? "+" : ""}₹{dayPnl.toLocaleString("en-IN")}
+                      </p>
+                    </div>
+                    <div className="h-10 w-px bg-border" />
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Trades</p>
+                      <p className="text-lg font-semibold">{selectedTrades.length}</p>
+                    </div>
+                    <div className="h-10 w-px bg-border" />
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">W / L</p>
+                      <p className="text-lg font-semibold">
+                        <span className="text-green-500">{wins}</span>
+                        <span className="text-muted-foreground mx-1">/</span>
+                        <span className="text-red-500">{losses}</span>
+                      </p>
+                    </div>
                   </div>
+                </div>
 
-                  <p className="text-xs text-muted-foreground">Strategy: {trade.strategy}</p>
-                </Card>
-              ))}
-            </div>
-          )}
+                {/* Trade Cards */}
+                <div className="p-5 space-y-3 max-h-[55vh] overflow-y-auto">
+                  {selectedTrades.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">No trades on this date.</p>
+                  ) : (
+                    selectedTrades.map((trade, i) => (
+                      <div
+                        key={i}
+                        className="group relative rounded-xl border border-border/60 p-4 cursor-pointer hover:bg-muted/40 hover:border-primary/30 transition-all"
+                        onClick={() => {
+                          setViewTrade(trade);
+                          setDetailsOpen(true);
+                        }}
+                      >
+                        {/* Row 1: Symbol + Direction + PnL */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-base font-bold">{trade.symbol}</span>
+                            <span className={cn(
+                              "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold",
+                              (trade.type || trade.direction) === "long"
+                                ? "bg-indigo-500/15 text-indigo-500"
+                                : "bg-orange-500/15 text-orange-500"
+                            )}>
+                              {(trade.type || trade.direction) === "long" ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                              {(trade.type || trade.direction) === "long" ? "LONG" : "SHORT"}
+                            </span>
+                          </div>
+                          <span className={cn(
+                            "text-lg font-bold",
+                            (trade.pnl || 0) >= 0 ? "text-green-500" : "text-red-500"
+                          )}>
+                            {(trade.pnl || 0) >= 0 ? "+" : ""}₹{(trade.pnl || 0).toLocaleString("en-IN")}
+                          </span>
+                        </div>
+
+                        {/* Row 2: Details */}
+                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                          <span>Entry: <span className="text-foreground font-medium">{trade.entryPrice || "—"}</span></span>
+                          <span>Exit: <span className="text-foreground font-medium">{trade.exitPrice || "—"}</span></span>
+                          <span>Qty: <span className="text-foreground font-medium">{trade.quantity || "—"}</span></span>
+                          {trade.entryTime && (
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {trade.entryTime}{trade.exitTime ? ` – ${trade.exitTime}` : ""}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Row 3: Strategy + Outcome */}
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-xs text-muted-foreground">Strategy: <span className="font-medium text-foreground">{trade.strategy}</span></span>
+                          {trade.outcome && (
+                            <span className={cn(
+                              "text-[11px] font-medium px-2 py-0.5 rounded-full",
+                              trade.outcome === "full-success" || trade.outcome === "success" ? "bg-green-500/15 text-green-500" :
+                                trade.outcome === "mistake" ? "bg-red-500/15 text-red-500" :
+                                  trade.outcome === "partial" ? "bg-blue-500/15 text-blue-500" :
+                                    "bg-zinc-500/15 text-zinc-400"
+                            )}>
+                              {trade.outcome === "full-success" ? "Full Success" : trade.outcome.charAt(0).toUpperCase() + trade.outcome.slice(1)}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* View Details Hint */}
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
+
+
+      {/* TRADE DETAILS MODAL */}
+      <TradeSummaryModal
+        trade={viewTrade}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+      />
     </div>
   );
 }

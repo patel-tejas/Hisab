@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, ArrowUpDown, Search, ArrowUpRight, ArrowDownRight, ChevronDown, ImageIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUpDown, Search, ArrowUpRight, ArrowDownRight, ChevronDown, ImageIcon, CalendarIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,10 @@ export default function TradesPage() {
   const [filterOutcome, setFilterOutcome] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [visibleCount, setVisibleCount] = useState(10);
+  const LOAD_MORE_COUNT = 10;
 
   useEffect(() => {
     setIsLoading(true);
@@ -52,6 +56,17 @@ export default function TradesPage() {
       if (filterDirection !== "all" && t.type !== filterDirection) return false;
       if (filterOutcome !== "all" && t.outcome !== filterOutcome) return false;
       if (searchQuery && !t.symbol.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+      // Date range filter
+      if (dateFrom) {
+        const tradeDate = new Date(t.date).setHours(0, 0, 0, 0);
+        const from = new Date(dateFrom).setHours(0, 0, 0, 0);
+        if (tradeDate < from) return false;
+      }
+      if (dateTo) {
+        const tradeDate = new Date(t.date).setHours(0, 0, 0, 0);
+        const to = new Date(dateTo).setHours(0, 0, 0, 0);
+        if (tradeDate > to) return false;
+      }
       return true;
     })
     .sort((a, b) => {
@@ -63,6 +78,9 @@ export default function TradesPage() {
         default: return +new Date(b.date) - +new Date(a.date);
       }
     });
+
+  const visibleTrades = filteredTrades.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredTrades.length;
 
   // Summary stats
   const totalPnl = filteredTrades.reduce((sum, t) => sum + t.pnl, 0);
@@ -115,6 +133,41 @@ export default function TradesPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-9 pl-9 pr-4 bg-secondary/50 border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
             />
+          </div>
+
+          {/* Date Range Filter */}
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <CalendarIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => { setDateFrom(e.target.value); setVisibleCount(10); }}
+                className="h-9 pl-8 pr-3 bg-secondary/50 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                title="From date"
+              />
+            </div>
+            <span className="text-muted-foreground text-xs">to</span>
+            <div className="relative">
+              <CalendarIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => { setDateTo(e.target.value); setVisibleCount(10); }}
+                className="h-9 pl-8 pr-3 bg-secondary/50 border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                title="To date"
+              />
+            </div>
+            {(dateFrom || dateTo) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => { setDateFrom(""); setDateTo(""); }}
+              >
+                Clear
+              </Button>
+            )}
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -197,7 +250,7 @@ export default function TradesPage() {
             </TableHeader>
 
             <TableBody>
-              {filteredTrades.map((trade) => (
+              {visibleTrades.map((trade) => (
                 <TableRow
                   key={trade._id}
                   className="cursor-pointer hover:bg-muted/30 transition-colors border-b border-border/50 group"
@@ -300,8 +353,20 @@ export default function TradesPage() {
 
       {/* Footer */}
       {!isLoading && filteredTrades.length > 0 && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground px-1">
-          <span>Showing {filteredTrades.length} of {trades.length} trades</span>
+        <div className="flex flex-col items-center gap-3 py-2">
+          <span className="text-sm text-muted-foreground">
+            Showing {visibleTrades.length} of {filteredTrades.length} trades
+          </span>
+          {hasMore && (
+            <Button
+              variant="outline"
+              className="rounded-xl px-8"
+              onClick={() => setVisibleCount((prev) => prev + LOAD_MORE_COUNT)}
+            >
+              <Loader2 className="h-4 w-4 mr-2 hidden" />
+              Load More
+            </Button>
+          )}
         </div>
       )}
 
