@@ -3,7 +3,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, ArrowLeftRight, Calendar, Wrench, BarChart3, Settings2, Sparkles, ChevronsLeft, ChevronsRight, Brain } from "lucide-react"
+import { LayoutDashboard, ArrowLeftRight, Calendar, Wrench, BarChart3, Settings2, Sparkles, ChevronsLeft, ChevronsRight, Brain, CalendarClock, FlaskConical } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useSidebar } from "@/lib/sidebar-context"
 
@@ -13,6 +13,8 @@ const navItems = [
   { href: "/dashboard/calendar", icon: Calendar, label: "Calendar" },
   { href: "/dashboard/reports", icon: BarChart3, label: "Analytics" },
   { href: "/dashboard/ai-insights", icon: Brain, label: "AI Insights" },
+  { href: "/dashboard/planner", icon: CalendarClock, label: "Daily Planner" },
+  { href: "/dashboard/backtester", icon: FlaskConical, label: "Backtester" },
   { href: "/dashboard/tools", icon: Wrench, label: "Tools" },
 ]
 
