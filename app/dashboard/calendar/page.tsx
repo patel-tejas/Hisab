@@ -339,94 +339,123 @@ export default function CalendarPage() {
         </div>
 
         {/* Week Headers */}
-        <div className="grid grid-cols-7 mb-2">
+        <div className="grid grid-cols-8 mb-2">
           {weekDays.map((w) => (
             <div key={w} className="text-center text-sm text-muted-foreground">
               {w}
             </div>
           ))}
+          <div className="text-center text-sm text-muted-foreground font-semibold">
+            Week P&L
+          </div>
         </div>
 
-        {/* Day Grid */}
-        <div className="grid grid-cols-7 gap-2">
-          {days.map((day, idx) => {
-            if (day === null) return <div key={idx} className="h-24" />;
+        {/* Day Grid with Weekly P&L */}
+        <div className="grid grid-cols-8 gap-2">
+          {(() => {
+            const rows: React.ReactNode[] = [];
+            let weekPnl = 0;
 
-            const key = `${currentDate.getFullYear()}-${String(
-              currentDate.getMonth() + 1
-            ).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+            days.forEach((day, idx) => {
+              if (day === null) {
+                rows.push(<div key={`empty-${idx}`} className="h-24" />);
+              } else {
+                const key = `${currentDate.getFullYear()}-${String(
+                  currentDate.getMonth() + 1
+                ).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
-            const dayInfo = calendarData[key];
+                const dayInfo = calendarData[key];
 
-            // Heatmap Opacity
-            let opacity = 0.1; // default low opacity
-            let colorClass = "bg-muted/30";
+                if (dayInfo) {
+                  weekPnl += dayInfo.pnl;
+                }
 
-            if (dayInfo) {
-              const intensity = monthlyHighlights.maxDailyPnl > 0
-                ? Math.min(Math.abs(dayInfo.pnl) / monthlyHighlights.maxDailyPnl, 1)
-                : 0;
+                const isStreak = monthlyHighlights.streakDates.has(key);
 
-              // Scale opacity between 0.2 and 0.9 based on PnL size relative to max
-              const scaledOpacity = 0.2 + (intensity * 0.7);
+                rows.push(
+                  <div
+                    key={`day-${idx}`}
+                    onClick={() => openDateTrades(day)}
+                    className="h-24 rounded-lg p-2 cursor-pointer transition-all duration-200 hover:scale-[1.03] hover:shadow-md relative overflow-hidden text-foreground/80 border border-border/40"
+                    style={{
+                      backgroundColor: dayInfo
+                        ? dayInfo.pnl >= 0
+                          ? `rgba(34, 197, 94, ${0.1 + (Math.min(Math.abs(dayInfo.pnl) / (monthlyHighlights.maxDailyPnl || 1), 1) * 0.6)})`
+                          : `rgba(239, 68, 68, ${0.1 + (Math.min(Math.abs(dayInfo.pnl) / (monthlyHighlights.maxDailyPnl || 1), 1) * 0.6)})`
+                        : undefined
+                    }}
+                  >
+                    <div className="flex justify-between items-start">
+                      <span className="text-sm font-medium opacity-70">
+                        {day}
+                      </span>
+                      {isStreak && (
+                        <span className="text-base animate-pulse" title="Winning Streak! (3+ Days)">
+                          🔥
+                        </span>
+                      )}
+                    </div>
 
-              if (dayInfo.pnl > 0) {
-                colorClass = `bg-green-500`;
-                // We'll apply opacity via style
-              } else if (dayInfo.pnl < 0) {
-                colorClass = `bg-red-500`;
+                    {dayInfo && (
+                      <div className="mt-2 text-center md:text-left">
+                        <p
+                          className={cn(
+                            "text-sm font-bold truncate",
+                            dayInfo.pnl >= 0 ? "text-green-700 dark:text-green-300" : "text-red-700 dark:text-red-300"
+                          )}
+                        >
+                          {dayInfo.pnl >= 0 ? "+" : "-"}₹
+                          {Math.abs(dayInfo.pnl).toLocaleString("en-IN")}
+                        </p>
+
+                        <p className="text-[10px] text-muted-foreground/80 font-medium mt-0.5">
+                          {dayInfo.trades} trades
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
               }
 
-              // Apply opacity style directly since Tailwind dynamic opacity is tricky with arbitrary values
-              // Actually, better to use rgba or hsla, but let's try a style override for background
-            }
+              // End of week row (Saturday = position 6 in the 0-indexed column) or last day
+              const colInRow = (idx + 1) % 7;
+              if (colInRow === 0 || idx === days.length - 1) {
+                // If this is the last row and it's not complete, pad remaining day cells
+                if (idx === days.length - 1 && colInRow !== 0) {
+                  for (let p = colInRow; p < 7; p++) {
+                    rows.push(<div key={`pad-${idx}-${p}`} className="h-24" />);
+                  }
+                }
 
-            const isStreak = monthlyHighlights.streakDates.has(key);
-
-            return (
-              <div
-                key={idx}
-                onClick={() => openDateTrades(day)}
-                className="h-24 rounded-lg p-2 cursor-pointer transition-all duration-200 hover:scale-[1.03] hover:shadow-md relative overflow-hidden text-foreground/80 border border-border/40"
-                style={{
-                  backgroundColor: dayInfo
-                    ? dayInfo.pnl >= 0
-                      ? `rgba(34, 197, 94, ${0.1 + (Math.min(Math.abs(dayInfo.pnl) / (monthlyHighlights.maxDailyPnl || 1), 1) * 0.6)})` // Green
-                      : `rgba(239, 68, 68, ${0.1 + (Math.min(Math.abs(dayInfo.pnl) / (monthlyHighlights.maxDailyPnl || 1), 1) * 0.6)})` // Red
-                    : undefined
-                }}
-              >
-                <div className="flex justify-between items-start">
-                  <span className="text-sm font-medium opacity-70">
-                    {day}
-                  </span>
-                  {isStreak && (
-                    <span className="text-base animate-pulse" title="Winning Streak! (3+ Days)">
-                      🔥
-                    </span>
-                  )}
-                </div>
-
-                {dayInfo && (
-                  <div className="mt-2 text-center md:text-left">
-                    <p
-                      className={cn(
-                        "text-sm font-bold truncate",
-                        dayInfo.pnl >= 0 ? "text-green-700 dark:text-green-300" : "text-red-700 dark:text-red-300"
-                      )}
-                    >
-                      {dayInfo.pnl >= 0 ? "+" : "-"}₹
-                      {Math.abs(dayInfo.pnl).toLocaleString("en-IN")}
-                    </p>
-
-                    <p className="text-[10px] text-muted-foreground/80 font-medium mt-0.5">
-                      {dayInfo.trades} trades
-                    </p>
+                // Week P&L summary cell
+                const thisWeekPnl = weekPnl;
+                rows.push(
+                  <div
+                    key={`week-${idx}`}
+                    className="h-24 rounded-lg p-2 flex flex-col items-center justify-center border border-border/20 bg-muted/20"
+                  >
+                    {thisWeekPnl !== 0 ? (
+                      <>
+                        <p className={cn(
+                          "text-sm font-bold",
+                          thisWeekPnl >= 0 ? "text-emerald-500" : "text-rose-500"
+                        )}>
+                          {thisWeekPnl >= 0 ? "+" : ""}₹{Math.round(thisWeekPnl).toLocaleString("en-IN")}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">weekly</p>
+                      </>
+                    ) : (
+                      <p className="text-[10px] text-muted-foreground">—</p>
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
+                );
+
+                weekPnl = 0;
+              }
+            });
+
+            return rows;
+          })()}
         </div>
       </Card>
 

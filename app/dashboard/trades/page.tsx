@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, ArrowUpDown, Search, ArrowUpRight, ArrowDownRight, ChevronDown, ImageIcon, CalendarIcon, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUpDown, Search, ArrowUpRight, ArrowDownRight, ChevronDown, ImageIcon, CalendarIcon, Loader2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,18 @@ export default function TradesPage() {
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  };
+
+  const formatDuration = (t: any) => {
+    if (!t.entryTime || !t.exitTime) return "—";
+    const [eh, em] = t.entryTime.split(":").map(Number);
+    const [xh, xm] = t.exitTime.split(":").map(Number);
+    let diffMins = (xh * 60 + xm) - (eh * 60 + em);
+    if (diffMins < 0) diffMins += 24 * 60;
+    const hours = Math.floor(diffMins / 60);
+    const mins = diffMins % 60;
+    if (hours === 0) return `${mins}m`;
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   };
 
   const calculateRiskReward = (t: any) => {
@@ -244,6 +256,7 @@ export default function TradesPage() {
                 <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">P&L</TableHead>
                 <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">R:R</TableHead>
                 <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Strategy</TableHead>
+                <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Duration</TableHead>
                 <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Outcome</TableHead>
                 <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground w-24">Actions</TableHead>
               </TableRow>
@@ -305,6 +318,13 @@ export default function TradesPage() {
 
                   <TableCell>
                     <span className="text-sm text-muted-foreground">{trade.strategy}</span>
+                  </TableCell>
+
+                  <TableCell>
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      {formatDuration(trade)}
+                    </span>
                   </TableCell>
 
                   <TableCell>

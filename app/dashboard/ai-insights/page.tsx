@@ -115,8 +115,8 @@ function SkillRadar({ strengths, weaknesses }: { strengths: string[]; weaknesses
     return (
         <ResponsiveContainer width="100%" height={220}>
             <RadarChart data={data} cx="50%" cy="50%" outerRadius="70%">
-                <PolarGrid stroke="hsl(var(--muted-foreground))" strokeOpacity={.15} />
-                <PolarAngleAxis dataKey="s" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} />
+                <PolarGrid stroke="var(--muted-foreground)" strokeOpacity={.15} />
+                <PolarAngleAxis dataKey="s" tick={{ fill: "var(--muted-foreground)", fontSize: 10 }} />
                 <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
                 <Radar dataKey="v" stroke="#6366f1" fill="#6366f1" fillOpacity={.2} strokeWidth={2} />
             </RadarChart>
