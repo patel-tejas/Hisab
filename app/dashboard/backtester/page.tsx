@@ -259,10 +259,12 @@ export default function BacktesterPage() {
                             </h4>
                             <ResponsiveContainer width="100%" height={250}>
                                 <BarChart data={pnlChartData} layout="vertical">
-                                    <XAxis type="number" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} tickFormatter={(v) => "₹" + v.toLocaleString("en-IN")} />
-                                    <YAxis type="category" dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} width={100} />
+                                    <XAxis type="number" tick={{ fill: "var(--muted-foreground)", fontSize: 10 }} tickFormatter={(v) => "₹" + v.toLocaleString("en-IN")} />
+                                    <YAxis type="category" dataKey="name" tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} width={100} />
                                     <Tooltip
-                                        contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "0.75rem", fontSize: "12px" }}
+                                        contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "0.75rem", fontSize: "12px", color: "var(--foreground)" }}
+                                        labelStyle={{ color: "var(--foreground)" }}
+                                        itemStyle={{ color: "var(--foreground)" }}
                                         formatter={(v: number) => ["₹" + v.toLocaleString("en-IN"), "P&L"]}
                                     />
                                     <Bar dataKey="pnl" radius={[0, 4, 4, 0]}>
@@ -281,10 +283,12 @@ export default function BacktesterPage() {
                             </h4>
                             <ResponsiveContainer width="100%" height={250}>
                                 <BarChart data={winRateChartData} layout="vertical">
-                                    <XAxis type="number" domain={[0, 100]} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} tickFormatter={(v) => v + "%"} />
-                                    <YAxis type="category" dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} width={100} />
+                                    <XAxis type="number" domain={[0, 100]} tick={{ fill: "var(--muted-foreground)", fontSize: 10 }} tickFormatter={(v) => v + "%"} />
+                                    <YAxis type="category" dataKey="name" tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} width={100} />
                                     <Tooltip
-                                        contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "0.75rem", fontSize: "12px" }}
+                                        contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "0.75rem", fontSize: "12px", color: "var(--foreground)" }}
+                                        labelStyle={{ color: "var(--foreground)" }}
+                                        itemStyle={{ color: "var(--foreground)" }}
                                         formatter={(v: number) => [v + "%", "Win Rate"]}
                                     />
                                     <Bar dataKey="winRate" fill="#6366f1" fillOpacity={0.7} radius={[0, 4, 4, 0]} />
@@ -299,10 +303,12 @@ export default function BacktesterPage() {
                             </h4>
                             <ResponsiveContainer width="100%" height={250}>
                                 <BarChart data={avgPnlChartData} layout="vertical">
-                                    <XAxis type="number" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} tickFormatter={(v) => "₹" + v.toLocaleString("en-IN")} />
-                                    <YAxis type="category" dataKey="name" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} width={100} />
+                                    <XAxis type="number" tick={{ fill: "var(--muted-foreground)", fontSize: 10 }} tickFormatter={(v) => "₹" + v.toLocaleString("en-IN")} />
+                                    <YAxis type="category" dataKey="name" tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} width={100} />
                                     <Tooltip
-                                        contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "0.75rem", fontSize: "12px" }}
+                                        contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "0.75rem", fontSize: "12px", color: "var(--foreground)" }}
+                                        labelStyle={{ color: "var(--foreground)" }}
+                                        itemStyle={{ color: "var(--foreground)" }}
                                         formatter={(v: number) => ["₹" + v.toLocaleString("en-IN"), "Avg P&L"]}
                                     />
                                     <Bar dataKey="avgPnl" radius={[0, 4, 4, 0]}>
@@ -321,14 +327,16 @@ export default function BacktesterPage() {
                             </h4>
                             <ResponsiveContainer width="100%" height={250}>
                                 <LineChart data={cumulativeData}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground))" strokeOpacity={0.1} />
-                                    <XAxis dataKey="date" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }} />
-                                    <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} tickFormatter={(v) => "₹" + v.toLocaleString("en-IN")} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--muted-foreground)" strokeOpacity={0.1} />
+                                    <XAxis dataKey="date" tick={{ fill: "var(--muted-foreground)", fontSize: 9 }} />
+                                    <YAxis tick={{ fill: "var(--muted-foreground)", fontSize: 10 }} tickFormatter={(v) => "₹" + v.toLocaleString("en-IN")} />
                                     <Tooltip
-                                        contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "0.75rem", fontSize: "12px" }}
+                                        contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: "0.75rem", fontSize: "12px", color: "var(--foreground)" }}
+                                        labelStyle={{ color: "var(--foreground)" }}
+                                        itemStyle={{ color: "var(--foreground)" }}
                                         formatter={(v: number, name: string) => ["₹" + v.toLocaleString("en-IN"), name]}
                                     />
-                                    <Legend wrapperStyle={{ fontSize: "11px" }} />
+                                    <Legend wrapperStyle={{ fontSize: "11px", color: "var(--foreground)" }} />
                                     {selectedArr.map((s, i) => (
                                         <Line
                                             key={s}
