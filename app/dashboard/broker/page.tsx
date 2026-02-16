@@ -155,14 +155,25 @@ export default function BrokerPage() {
             </Card>
 
             {/* Other Brokers Placeholder */}
-            {["Zerodha", "AngelOne", "Upstox", "Groww", "Fyers"].map((name) => (
-                <Card key={name} className="relative overflow-hidden opacity-60 border-dashed">
+            {[
+                { name: "Zerodha", logo: "/zerodha_logo.png" },
+                { name: "AngelOne", logo: "/angelone_logo.png" },
+                { name: "Upstox", logo: "/upstox_logo.png" },
+                { name: "Groww", logo: "/groww_logo.png" },
+                { name: "Fyers", logo: "/fyers_logo.jpg" },
+            ].map((broker) => (
+                <Card key={broker.name} className="relative overflow-hidden opacity-60 border-dashed hover:opacity-80 transition-opacity">
                     <div className="p-6 flex flex-col items-center text-center space-y-4">
-                        <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center">
-                            <span className="text-xl font-bold text-muted-foreground/50">{name[0]}</span>
+                        <div className="h-16 w-16 rounded-2xl overflow-hidden border border-border/50 relative bg-white">
+                            <Image
+                                src={broker.logo}
+                                alt={broker.name}
+                                fill
+                                className="object-contain p-2"
+                            />
                         </div>
                         <div>
-                            <h3 className="text-lg font-bold text-muted-foreground">{name}</h3>
+                            <h3 className="text-lg font-bold text-muted-foreground">{broker.name}</h3>
                             <p className="text-xs text-muted-foreground">Coming Soon</p>
                         </div>
                         <div className="px-3 py-1.5 rounded-full bg-muted/50 text-[10px] uppercase font-bold text-muted-foreground">
