@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, ArrowUpDown, Search, ArrowUpRight, ArrowDownRight, ChevronDown, ImageIcon, CalendarIcon, Loader2, Clock } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUpDown, Search, ArrowUpRight, ArrowDownRight, ChevronDown, ImageIcon, CalendarIcon, Loader2, Clock, Link2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TradeSummaryModal } from "@/components/trade-summary-modal";
 import { AddTradeModal } from "@/components/add-trade-modal";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 export default function TradesPage() {
   const [trades, setTrades] = useState<any[]>([]);
@@ -25,6 +26,12 @@ export default function TradesPage() {
   const [dateTo, setDateTo] = useState("");
   const [visibleCount, setVisibleCount] = useState(10);
   const LOAD_MORE_COUNT = 10;
+  const router = useRouter();
+
+  // Broker sync state
+  const [brokerConnected, setBrokerConnected] = useState(false);
+  const [brokerSyncing, setBrokerSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
     setIsLoading(true);
@@ -36,6 +43,42 @@ export default function TradesPage() {
       })
       .catch(() => setIsLoading(false));
   }, []);
+
+  // Check broker connection on mount
+  useEffect(() => {
+    fetch("/api/broker/status").then(r => r.json()).then(d => {
+      const dhan = (d.brokers || []).find((b: any) => b.broker === "dhan" && b.isActive);
+      setBrokerConnected(!!dhan);
+    }).catch(() => { });
+  }, []);
+
+  const handleDhanSync = async () => {
+    if (!brokerConnected) {
+      router.push("/dashboard/broker");
+      return;
+    }
+    setBrokerSyncing(true);
+    setSyncMessage(null);
+    try {
+      const res = await fetch("/api/broker/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ broker: "dhan" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setSyncMessage({ type: "success", text: data.message });
+      if (data.imported > 0) {
+        // Refresh trades list
+        const tradesRes = await fetch("/api/trades");
+        if (tradesRes.ok) setTrades(await tradesRes.json());
+      }
+      setTimeout(() => setSyncMessage(null), 5000);
+    } catch (err: any) {
+      setSyncMessage({ type: "error", text: err.message });
+      setTimeout(() => setSyncMessage(null), 5000);
+    } finally { setBrokerSyncing(false); }
+  };
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -123,14 +166,36 @@ export default function TradesPage() {
           </p>
         </div>
 
-        <Button
-          onClick={() => { setTradeToEdit(null); setIsAddTradeOpen(true); }}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg shadow-primary/20 h-10 px-5 transition-all hover:scale-[1.02]"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          New Trade
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleDhanSync}
+            disabled={brokerSyncing}
+            variant="outline"
+            className="rounded-xl h-10 px-4 gap-2 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+          >
+            {brokerSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+            {brokerConnected ? "Sync Dhan" : "Connect Dhan"}
+          </Button>
+          <Button
+            onClick={() => { setTradeToEdit(null); setIsAddTradeOpen(true); }}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg shadow-primary/20 h-10 px-5 transition-all hover:scale-[1.02]"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            New Trade
+          </Button>
+        </div>
       </div>
+
+      {/* Sync Message */}
+      {syncMessage && (
+        <div className={cn(
+          "p-3 rounded-xl border flex items-center gap-2 text-sm animate-in fade-in slide-in-from-top-2 duration-300",
+          syncMessage.type === "success" ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-400" : "bg-rose-500/5 border-rose-500/20 text-rose-400"
+        )}>
+          {syncMessage.type === "success" ? <Zap className="h-4 w-4 shrink-0" /> : <Link2 className="h-4 w-4 shrink-0" />}
+          {syncMessage.text}
+        </div>
+      )}
 
       {/* Filters Bar */}
       <Card className="p-4 glass-card">

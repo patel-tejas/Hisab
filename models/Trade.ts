@@ -33,6 +33,9 @@ export interface ITrade extends Document {
   lessonsLearned?: string;
 
   images: string[];
+
+  source?: "manual" | "dhan";
+  brokerOrderId?: string;
 }
 
 const TradeSchema = new Schema<ITrade>(
@@ -70,6 +73,9 @@ const TradeSchema = new Schema<ITrade>(
     lessonsLearned: String,
 
     images: { type: [String], default: [] },
+
+    source: { type: String, enum: ["manual", "dhan"], default: "manual" },
+    brokerOrderId: { type: String, index: true },
   },
   { timestamps: true }
 );

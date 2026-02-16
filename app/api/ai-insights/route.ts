@@ -218,10 +218,21 @@ export async function GET(req: Request) {
             });
         });
 
+        // ── Date range + trading days ──
+        const tradeDates = trades.map(t => new Date(t.date));
+        const earliestDate = new Date(Math.min(...tradeDates.map(d => d.getTime())));
+        const latestDate = new Date(Math.max(...tradeDates.map(d => d.getTime())));
+        const uniqueTradingDays = new Set(trades.map(t => new Date(t.date).toDateString())).size;
+        const thisMonthPnl = thisMonth.reduce((s, t) => s + t.pnl, 0);
+        const thisMonthDays = new Set(thisMonth.map(t => new Date(t.date).toDateString())).size;
+        const thisMonthDailyAvg = thisMonthDays > 0 ? Math.round(thisMonthPnl / thisMonthDays) : 0;
+
         // ── Build data context for AI ──
         const lines: string[] = [];
         lines.push("=== TRADER PERFORMANCE DATA ===");
         lines.push("Total trades: " + trades.length);
+        lines.push("Date range: " + earliestDate.toLocaleDateString("en-IN") + " to " + latestDate.toLocaleDateString("en-IN"));
+        lines.push("Unique trading days: " + uniqueTradingDays);
         lines.push("Total PnL: Rs" + Math.round(totalPnl));
         lines.push("Win rate: " + winRate + "% (" + winCount + "W / " + lossCount + "L)");
         lines.push("Avg PnL per trade: Rs" + avgPnl);
@@ -230,7 +241,8 @@ export async function GET(req: Request) {
         lines.push("");
 
         lines.push("=== THIS MONTH (" + now.toLocaleString("en-IN", { month: "long" }) + ") ===");
-        lines.push("Trades: " + thisMonth.length + " | PnL: Rs" + Math.round(thisMonth.reduce((s, t) => s + t.pnl, 0)));
+        lines.push("Trades: " + thisMonth.length + " | PnL: Rs" + Math.round(thisMonthPnl));
+        lines.push("Trading days this month: " + thisMonthDays + " | Avg daily PnL: Rs" + thisMonthDailyAvg);
         lines.push("Last month: " + lastMonth.length + " trades | Rs" + Math.round(lastMonth.reduce((s, t) => s + t.pnl, 0)));
         lines.push("");
 
@@ -330,7 +342,7 @@ export async function GET(req: Request) {
             confidenceCalibration: {
                 finding: "Key finding about confidence vs actual performance (1-2 sentences with numbers)",
                 optimalConfidence: "Which confidence level produces best results",
-                overconfidenceBias: true,
+                overconfidenceBias: false,
             },
             lossRecovery: {
                 finding: "How the trader recovers from losses (1-2 sentences with numbers)",
@@ -348,8 +360,8 @@ export async function GET(req: Request) {
                 advice: "What to do after N losses in a row (1 sentence)",
             },
             whatIfScenarios: [
-                { scenario: "Description of what-if scenario", currentPnl: 0, projectedPnl: 0, difference: 0, advice: "1 sentence" },
-                { scenario: "Second what-if scenario", currentPnl: 0, projectedPnl: 0, difference: 0, advice: "1 sentence" },
+                { scenario: "Description", currentPnl: 0, projectedPnl: 0, difference: 0, advice: "1 sentence", assumptions: "Based on N trades over M days" },
+                { scenario: "Description", currentPnl: 0, projectedPnl: 0, difference: 0, advice: "1 sentence", assumptions: "Based on N trades over M days" },
             ],
             tradeDuration: {
                 finding: "How trade duration affects performance (1-2 sentences with numbers)",
@@ -357,14 +369,14 @@ export async function GET(req: Request) {
                 advice: "1 sentence",
             },
             personalizedRules: [
-                "Rule 1 specific to this trader with numbers",
-                "Rule 2 specific to this trader with numbers",
-                "Rule 3 specific to this trader with numbers",
-                "Rule 4 specific to this trader with numbers",
-                "Rule 5 specific to this trader with numbers",
+                "Rule 1 (highest impact first)",
+                "Rule 2",
+                "Rule 3",
+                "Rule 4",
+                "Rule 5",
             ],
             performanceForecast: {
-                projection: "At current trajectory, monthly projection (1-2 sentences with specific Rs amount)",
+                projection: "Monthly projection with clear reasoning (1-2 sentences with specific Rs amount)",
                 monthEndTarget: 0,
                 confidence: "low | medium | high",
             },
@@ -382,13 +394,31 @@ export async function GET(req: Request) {
                 advice: "1 sentence risk advice",
             },
             actionItems: [
-                "Specific action 1", "Specific action 2", "Specific action 3",
+                { text: "Specific action", priority: "high | quick-win | long-term" },
             ],
             traderLevel: "beginner | intermediate | advanced | expert",
             confidenceScore: "0-100 number",
+            dataRange: {
+                from: "earliest trade date",
+                to: "latest trade date",
+                totalDays: 0,
+                totalTrades: 0,
+            },
         }, null, 2);
 
-        const prompt = "You are an elite trading performance analyst. Analyze this trader's comprehensive data and return deep, data-driven insights. Be specific — mention exact numbers, percentages, and Rs amounts. Do NOT be generic.\n\n" +
+        const prompt = `You are an elite trading performance analyst. Analyze this trader's comprehensive data and return deep, data-driven insights.
+
+CRITICAL INSTRUCTIONS:
+1. TRADER LEVEL: Base this on TOTAL PnL, win rate, consistency, and risk management combined. A trader with Rs${Math.round(totalPnl)}+ total profit, ${winRate}% win rate over ${trades.length} trades should NOT be labeled beginner or intermediate unless their risk management is clearly poor. Use: beginner (<Rs50k total or <45% WR), intermediate (Rs50k-3L or inconsistent), advanced (Rs3L+ with decent risk), expert (Rs5L+ with strong metrics across the board).
+2. CONFIDENCE CALIBRATION: Look at EACH confidence level's win rate and PnL carefully. Only flag "overconfidenceBias: true" if HIGH confidence levels (4/5, 5/5) underperform relative to expectations. If low confidence levels (1/5, 2/5) have poor win rates, that may be ACCURATE calibration, not overconfidence. Distinguish between "underconfidence at low levels" vs "overconfidence at high levels".
+3. WHAT-IF SCENARIOS: Each scenario MUST include clear "assumptions" field explaining the basis (e.g., "Based on 45 trades where confidence was below 3, removing these would exclude Rs-X in losses and Rs+Y in wins"). If removing low-confidence trades would DECREASE total PnL, explain this clearly as "these trades are still net profitable".
+4. SHARPE RATIO: A Sharpe ratio below 1.0 should be described as "below optimal" (not "moderate"). Below 0.5 is "poor risk-adjusted returns". Above 1.0 is "good". Above 2.0 is "excellent".
+5. FORECAST: Clearly state the REASONING behind your projection (e.g., "Based on the last 10 trading days averaging RsX/day" or "Recent declining trend of X%"). Don't just state a number.
+6. PERSONALIZED RULES: Order by highest impact first. Each rule should reference specific data.
+7. ACTION ITEMS: Each must have a "priority" label: "high" (critical impact on performance), "quick-win" (easy to implement, moderate impact), or "long-term" (requires sustained effort).
+8. Be specific — mention exact numbers, percentages, and Rs amounts. Do NOT be generic.
+
+` +
             tradeDataContext +
             "\n\nReturn ONLY valid JSON (no markdown, no code blocks) matching this structure:\n" +
             jsonStructure;
