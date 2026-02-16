@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose"; // Mongoose model
 
 export interface ITrade extends Document {
   user: mongoose.Types.ObjectId | string | null;
@@ -36,6 +36,7 @@ export interface ITrade extends Document {
 
   source?: "manual" | "dhan";
   brokerOrderId?: string;
+  brokerage?: number;
 }
 
 const TradeSchema = new Schema<ITrade>(
@@ -75,7 +76,8 @@ const TradeSchema = new Schema<ITrade>(
     images: { type: [String], default: [] },
 
     source: { type: String, enum: ["manual", "dhan"], default: "manual" },
-    brokerOrderId: { type: String, index: true },
+    brokerOrderId: { type: String, unique: true, sparse: true }, // Deduplication key
+    brokerage: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

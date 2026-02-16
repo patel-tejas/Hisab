@@ -40,6 +40,7 @@ export interface PairedTrade {
     orderId: string;      // for dedup
     exchangeSegment: string;
     productType: string;
+    brokerage: number;
 }
 
 /* ──────────────────── Fetch today's trades ──────────────────── */
@@ -139,6 +140,7 @@ export function pairTrades(rawTrades: DhanRawTrade[]): PairedTrade[] {
                 orderId: entry.orderId,
                 exchangeSegment: entry.exchangeSegment,
                 productType: entry.productType,
+                brokerage: 47.5,
             });
         }
     }
@@ -172,5 +174,6 @@ export function mapToAppTrade(paired: PairedTrade, userId: string) {
         images: [],
         source: "dhan",
         brokerOrderId: paired.orderId,
+        brokerage: paired.brokerage,
     };
 }

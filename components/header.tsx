@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { Sun, ChevronDown, Plus, RefreshCw, LogOut, Moon } from "lucide-react";
+import { Sun, ChevronDown, Plus, Moon, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
+import { useAuth } from "@/lib/auth-context";
 
 interface HeaderProps {
   onNewTrade?: () => void;
@@ -32,39 +33,25 @@ interface TickerItem {
 
 export function Header({ onNewTrade }: HeaderProps) {
   const [ticker, setTicker] = useState<TickerItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [userData, setUserData] = useState<any>(null);
+  const [tickerLoading, setTickerLoading] = useState(false);
+  const { user, logout } = useAuth();
   const scrollRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number>(null);
   const router = useRouter();
   const { setTheme, theme } = useTheme();
   const [loggingOut, setLoggingOut] = useState(false);
 
-  const handleLogout = useCallback(async () => {
+  const handleLogout = async () => {
     setLoggingOut(true);
-    try {
-      const res = await fetch("/api/logout", { method: "POST", credentials: "include" });
-      if (res.ok) {
-        // Clear any localStorage caches
-        localStorage.removeItem("ai_insights_cache");
-        toast.success("Logged out successfully");
-        window.location.href = "/sign-in";
-      } else {
-        toast.error("Failed to log out");
-      }
-    } catch {
-      toast.error("Failed to log out");
-    } finally {
-      setLoggingOut(false);
-    }
-  }, []);
+    await logout();
+    setLoggingOut(false);
+  };
 
-  // Mock Data & Helpers (simplified for brevity, assume similar logic to before)
+  // Mock Data & Helpers
   const formatSymbol = (symbol: string) => symbol.split(":").pop() || symbol;
 
   const loadTicker = useCallback(async () => {
-    // ... (Using same logic as before, just simplified for this rewrite)
-    setIsLoading(true);
+    setTickerLoading(true);
     try {
       const res = await fetch("/api/market-ticker");
       const data = await res.json();
@@ -77,14 +64,12 @@ export function Header({ onNewTrade }: HeaderProps) {
     } catch (e) {
       setTicker(fallbackTickers);
     } finally {
-      setIsLoading(false);
+      setTickerLoading(false);
     }
   }, []);
 
   useEffect(() => {
     loadTicker();
-    // Fetch user data mock
-    fetch("/api/user").then(r => r.json()).then(d => d.success && setUserData(d.user)).catch(() => { });
   }, [loadTicker]);
 
   // Auto-scroll logic 
@@ -178,11 +163,11 @@ export function Header({ onNewTrade }: HeaderProps) {
               <div className="relative h-9 w-9 rounded-full ring-2 ring-border overflow-hidden">
                 {/* Avatar Placeholder / Image */}
                 <div className="h-full w-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
-                  {userData?.initials || "U"}
+                  {user?.initials || "U"}
                 </div>
               </div>
               <div className="flex flex-col items-start text-xs text-left hidden sm:flex mr-1">
-                <span className="font-medium text-foreground">{userData?.username || "Trader"}</span>
+                <span className="font-medium text-foreground">{user?.username || "Trader"}</span>
               </div>
               <ChevronDown className="h-4 w-4 text-muted-foreground mr-2" />
             </Button>

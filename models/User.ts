@@ -9,6 +9,8 @@ export interface IBrokerConnection {
 }
 
 export interface IUser extends Document {
+  name?: string;
+  email?: string;
   username: string;
   password: string;
   brokerConnections: IBrokerConnection[];
@@ -27,6 +29,8 @@ const BrokerConnectionSchema = new Schema(
 
 const UserSchema: Schema<IUser> = new Schema(
   {
+    name: { type: String, trim: true },
+    email: { type: String, trim: true, sparse: true, unique: true },
     username: { type: String, required: true, unique: true, trim: true },
     password: { type: String, required: true },
     brokerConnections: { type: [BrokerConnectionSchema], default: [] },

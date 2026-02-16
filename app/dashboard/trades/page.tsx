@@ -80,6 +80,23 @@ export default function TradesPage() {
     } finally { setBrokerSyncing(false); }
   };
 
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this trade?")) return;
+
+    try {
+      const res = await fetch(`/api/trades/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete trade");
+
+      setTrades((prev) => prev.filter((t) => t._id !== id));
+      setSyncMessage({ type: "success", text: "Trade deleted successfully" });
+      setTimeout(() => setSyncMessage(null), 3000);
+    } catch (err) {
+      setSyncMessage({ type: "error", text: "Failed to delete trade" });
+      setTimeout(() => setSyncMessage(null), 3000);
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
@@ -139,6 +156,9 @@ export default function TradesPage() {
 
   // Summary stats
   const totalPnl = filteredTrades.reduce((sum, t) => sum + t.pnl, 0);
+  const totalBrokerage = filteredTrades.reduce((sum, t) => sum + (t.brokerage || 0), 0);
+  const netPnl = totalPnl - totalBrokerage;
+
   const winCount = filteredTrades.filter((t) => t.pnl > 0).length;
   const lossCount = filteredTrades.filter((t) => t.pnl <= 0).length;
 
@@ -160,13 +180,14 @@ export default function TradesPage() {
             {filteredTrades.length} trades •
             <span className="text-emerald-500 ml-1">{winCount}W</span> /
             <span className="text-rose-500 ml-1">{lossCount}L</span> •
-            <span className={cn("ml-1 font-medium", totalPnl >= 0 ? "text-emerald-500" : "text-rose-500")}>
-              {totalPnl >= 0 ? "+" : ""}₹{totalPnl.toLocaleString("en-IN")}
+            <span className={cn("ml-1 font-medium", netPnl >= 0 ? "text-emerald-500" : "text-rose-500")}>
+              Net: {netPnl >= 0 ? "+" : ""}₹{netPnl.toLocaleString("en-IN")}
             </span>
           </p>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* ... buttons ... */}
           <Button
             onClick={handleDhanSync}
             disabled={brokerSyncing}
@@ -184,6 +205,43 @@ export default function TradesPage() {
             New Trade
           </Button>
         </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Net P&L */}
+        <Card className="p-4 glass-card bg-gradient-to-br from-background to-muted/20">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Net P&L</p>
+          <div className={cn("mt-2 text-2xl font-bold", netPnl >= 0 ? "text-emerald-500" : "text-rose-500")}>
+            {netPnl >= 0 ? "+" : ""}₹{netPnl.toLocaleString("en-IN")}
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1">Realized Profit</p>
+        </Card>
+
+        {/* Brokerage */}
+        <Card className="p-4 glass-card bg-gradient-to-br from-background to-muted/20">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Charges</p>
+          <div className="mt-2 text-2xl font-bold text-amber-500">
+            ₹{totalBrokerage.toLocaleString("en-IN")}
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1">Est. Brokerage & Taxes</p>
+        </Card>
+
+        {/* Total Trades */}
+        <Card className="p-4 glass-card bg-gradient-to-br from-background to-muted/20">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Trades</p>
+          <div className="mt-2 text-2xl font-bold text-foreground">{filteredTrades.length}</div>
+          <p className="text-[10px] text-muted-foreground mt-1">{winCount} Wins • {lossCount} Losses</p>
+        </Card>
+
+        {/* Gross P&L */}
+        <Card className="p-4 glass-card bg-gradient-to-br from-background to-muted/20">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Gross P&L</p>
+          <div className={cn("mt-2 text-2xl font-bold", totalPnl >= 0 ? "text-emerald-500/80" : "text-rose-500/80")}>
+            {totalPnl >= 0 ? "+" : ""}₹{totalPnl.toLocaleString("en-IN")}
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1">Before Charges</p>
+        </Card>
       </div>
 
       {/* Sync Message */}
@@ -424,6 +482,7 @@ export default function TradesPage() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
+                        onClick={(e) => handleDelete(trade._id, e)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>

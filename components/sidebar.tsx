@@ -16,7 +16,6 @@ const navItems = [
   { href: "/dashboard/broker", icon: Link2, label: "Brokers" },
   { href: "/dashboard/planner", icon: CalendarClock, label: "Daily Planner" },
   { href: "/dashboard/backtester", icon: FlaskConical, label: "Backtester" },
-  { href: "/dashboard/tools", icon: Wrench, label: "Tools" },
 ]
 
 export function Sidebar() {
@@ -73,7 +72,8 @@ export function Sidebar() {
 
       {/* Bottom: Settings + Collapse Toggle */}
       <div className={cn("border-t border-border mx-2", collapsed ? "p-2" : "p-4")}>
-        <button
+        <Link
+          href="/dashboard/settings"
           title={collapsed ? "Settings" : undefined}
           className={cn(
             "flex items-center w-full rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all",
@@ -82,7 +82,7 @@ export function Sidebar() {
         >
           <Settings2 className="h-5 w-5 shrink-0" />
           {!collapsed && <span>Settings</span>}
-        </button>
+        </Link>
         <button
           onClick={toggle}
           className={cn(

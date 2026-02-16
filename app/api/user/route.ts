@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
+import { db } from "@/lib/db";
+import mongoose from "mongoose";
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
@@ -18,15 +22,31 @@ export async function GET(req: NextRequest) {
       const secret = new TextEncoder().encode(process.env.JWT_SECRET as string);
       const { payload }: any = await jwtVerify(token, secret);
 
+      await db();
+
+      // Use native driver to bypass Mongoose schema caching issues in dev mode
+      const usersCollection = mongoose.connection.collection("users");
+      const user = await usersCollection.findOne({ _id: new mongoose.Types.ObjectId(payload.id) });
+
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: "User not found" },
+          { status: 404 }
+        );
+      }
+
       return NextResponse.json({
         success: true,
         user: {
-          id: payload.id,
-          username: payload.username,
-          initials: payload.username?.charAt(0).toUpperCase() || "U",
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          username: user.username,
+          initials: (user.name || user.username)?.charAt(0).toUpperCase() || "U",
         }
       });
     } catch (err) {
+      console.error("Token verification error:", err);
       return NextResponse.json(
         { success: false, error: "Invalid token" },
         { status: 401 }

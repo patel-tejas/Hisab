@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/sidebar"
 import { Header } from "@/components/header"
 import { AddTradeModal } from "@/components/add-trade-modal"
 import { SidebarProvider, useSidebar } from "@/lib/sidebar-context"
+import { AuthProvider } from "@/lib/auth-context"
 import { cn } from "@/lib/utils"
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
@@ -46,8 +47,10 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   return (
-    <SidebarProvider>
-      <DashboardContent>{children}</DashboardContent>
-    </SidebarProvider>
+    <AuthProvider>
+      <SidebarProvider>
+        <DashboardContent>{children}</DashboardContent>
+      </SidebarProvider>
+    </AuthProvider>
   )
 }

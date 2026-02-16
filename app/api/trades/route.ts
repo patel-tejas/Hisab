@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from "next/server"; // API Route
 import { db } from "@/lib/db";
 import Trade from "@/models/Trade";
 import { verifyUser } from "@/lib/verifyUser";

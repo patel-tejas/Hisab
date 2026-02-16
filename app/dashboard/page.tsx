@@ -16,8 +16,10 @@ import { MonthlyComparison } from "@/components/monthly-comparison";
 import { GoalTracker } from "@/components/goal-tracker";
 import { RevengeTrades } from "@/components/revenge-trades";
 import { format } from "date-fns";
+import { useAuth } from "@/lib/auth-context";
 
 export default function DashboardPage() {
+  const { user } = useAuth();
   const [data, setData] = useState<any>(null);
   const [greeting, setGreeting] = useState("");
 
@@ -52,7 +54,9 @@ export default function DashboardPage() {
       {/* Greeting */}
       <div>
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-2">
-          {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">Pro Trader</span>
+          {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">
+            {user?.name || "Pro Trader"}
+          </span>
         </h1>
         <p className="text-muted-foreground">{today}</p>
       </div>
