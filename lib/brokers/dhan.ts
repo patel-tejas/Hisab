@@ -65,83 +65,95 @@ export async function fetchDhanTrades(accessToken: string): Promise<DhanRawTrade
 }
 
 /* ──────────────────── Pair BUY+SELL into trades ──────────────────── */
+/* ──────────────────── Pair BUY+SELL into trades (FIFO) ──────────────────── */
 export function pairTrades(rawTrades: DhanRawTrade[]): PairedTrade[] {
     // Group by symbol
-    const bySymbol = new Map<string, { buys: DhanRawTrade[]; sells: DhanRawTrade[] }>();
+    const bySymbol = new Map<string, DhanRawTrade[]>();
 
     for (const t of rawTrades) {
         const key = `${t.tradingSymbol}_${t.exchangeSegment}`;
-        if (!bySymbol.has(key)) bySymbol.set(key, { buys: [], sells: [] });
-        const group = bySymbol.get(key)!;
-        if (t.transactionType === "BUY") group.buys.push(t);
-        else group.sells.push(t);
+        if (!bySymbol.has(key)) bySymbol.set(key, []);
+        bySymbol.get(key)!.push(t);
     }
 
     const paired: PairedTrade[] = [];
 
-    for (const [, group] of bySymbol) {
+    for (const [, trades] of bySymbol) {
         // Sort by time (earliest first)
-        group.buys.sort((a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime());
-        group.sells.sort((a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime());
+        trades.sort((a, b) => new Date(a.createTime).getTime() - new Date(b.createTime).getTime());
 
-        // Match: If BUY came first → long trade, if SELL first → short trade
-        const primary = group.buys.length >= group.sells.length ? "long" : "short";
-        const entries = primary === "long" ? group.buys : group.sells;
-        const exits = primary === "long" ? group.sells : group.buys;
+        // Queue of open legs
+        const openLegs: { trade: DhanRawTrade; type: "BUY" | "SELL"; remainingQty: number }[] = [];
 
-        const usedExits = new Set<number>();
+        for (const t of trades) {
+            let remainingQty = t.tradedQuantity;
 
-        for (const entry of entries) {
-            // Find matching exit with same quantity
-            let exitIdx = -1;
-            for (let i = 0; i < exits.length; i++) {
-                if (
-                    !usedExits.has(i) &&
-                    exits[i].tradedQuantity === entry.tradedQuantity &&
-                    new Date(exits[i].createTime).getTime() > new Date(entry.createTime).getTime()
-                ) {
-                    exitIdx = i;
-                    break;
+            // Try to match with open legs if opposite direction
+            while (remainingQty > 0 && openLegs.length > 0) {
+                const head = openLegs[0];
+
+                // If same direction, break and add to open (e.g. accumulating)
+                if (head.type === t.transactionType) break;
+
+                // Opposite direction → Match
+                const matchQty = Math.min(remainingQty, head.remainingQty);
+
+                // Determine Entry and Exit
+                // If head was Buy and t is Sell → Long Trade
+                // If head was Sell and t is Buy → Short Trade
+                const isLong = head.type === "BUY";
+                const entry = head.trade;
+                const exit = t;
+
+                const entryPrice = entry.tradedPrice;
+                const exitPrice = exit.tradedPrice;
+                const qty = matchQty;
+
+                const pnl = isLong
+                    ? (exitPrice - entryPrice) * qty
+                    : (entryPrice - exitPrice) * qty;
+                const totalAmount = entryPrice * qty;
+                const pnlPercent = totalAmount > 0 ? (pnl / totalAmount) * 100 : 0;
+
+                const entryDate = new Date(entry.createTime);
+                const exitDate = new Date(exit.createTime);
+
+                paired.push({
+                    symbol: entry.tradingSymbol,
+                    date: new Date(entryDate.toDateString()), // date only
+                    type: isLong ? "long" : "short",
+                    quantity: qty,
+                    entryPrice,
+                    exitPrice,
+                    entryTime: entryDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false }),
+                    exitTime: exitDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false }),
+                    pnl: Math.round(pnl * 100) / 100,
+                    pnlPercent: Math.round(pnlPercent * 100) / 100,
+                    totalAmount: Math.round(totalAmount * 100) / 100,
+                    orderId: entry.orderId,
+                    exchangeSegment: entry.exchangeSegment,
+                    productType: entry.productType,
+                    brokerage: 47.5,
+                });
+
+                // Update remainders
+                remainingQty -= matchQty;
+                head.remainingQty -= matchQty;
+
+                // If head fully consumed, remove from queue
+                if (head.remainingQty <= 0) {
+                    openLegs.shift();
                 }
             }
 
-            if (exitIdx === -1) {
-                // No matching exit — could be open position, skip or create partial
-                continue;
+            // If any quantity remains, add to open legs
+            if (remainingQty > 0) {
+                openLegs.push({
+                    trade: t,
+                    type: t.transactionType,
+                    remainingQty: remainingQty
+                });
             }
-
-            usedExits.add(exitIdx);
-            const exit = exits[exitIdx];
-
-            const entryPrice = entry.tradedPrice;
-            const exitPrice = exit.tradedPrice;
-            const qty = entry.tradedQuantity;
-            const pnl = primary === "long"
-                ? (exitPrice - entryPrice) * qty
-                : (entryPrice - exitPrice) * qty;
-            const totalAmount = entryPrice * qty;
-            const pnlPercent = totalAmount > 0 ? (pnl / totalAmount) * 100 : 0;
-
-            const entryDate = new Date(entry.createTime);
-            const exitDate = new Date(exit.createTime);
-
-            paired.push({
-                symbol: entry.tradingSymbol,
-                date: new Date(entryDate.toDateString()), // date only
-                type: primary,
-                quantity: qty,
-                entryPrice,
-                exitPrice,
-                entryTime: entryDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false }),
-                exitTime: exitDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false }),
-                pnl: Math.round(pnl * 100) / 100,
-                pnlPercent: Math.round(pnlPercent * 100) / 100,
-                totalAmount: Math.round(totalAmount * 100) / 100,
-                orderId: entry.orderId,
-                exchangeSegment: entry.exchangeSegment,
-                productType: entry.productType,
-                brokerage: 47.5,
-            });
         }
     }
 
@@ -152,7 +164,7 @@ export function pairTrades(rawTrades: DhanRawTrade[]): PairedTrade[] {
 export function mapToAppTrade(paired: PairedTrade, userId: string) {
     return {
         user: userId,
-        symbol: paired.symbol,
+        symbol: paired.symbol.replace(/^NIFTY/, "NIFTY 50"),
         date: paired.date,
         type: paired.type,
         quantity: paired.quantity,

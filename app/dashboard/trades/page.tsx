@@ -11,6 +11,8 @@ import { TradeSummaryModal } from "@/components/trade-summary-modal";
 import { AddTradeModal } from "@/components/add-trade-modal";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DeleteTradeDialog } from "@/components/delete-trade-dialog";
 
 export default function TradesPage() {
   const [trades, setTrades] = useState<any[]>([]);
@@ -32,6 +34,15 @@ export default function TradesPage() {
   const [brokerConnected, setBrokerConnected] = useState(false);
   const [brokerSyncing, setBrokerSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Bulk Delete state
+  const [selectedTrades, setSelectedTrades] = useState<string[]>([]);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+  // Delete Dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [tradeToDelete, setTradeToDelete] = useState<string | null>(null); // ID for single delete
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     setIsLoading(true);
@@ -80,21 +91,71 @@ export default function TradesPage() {
     } finally { setBrokerSyncing(false); }
   };
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  const handleDeleteClick = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!window.confirm("Are you sure you want to delete this trade?")) return;
+    setTradeToDelete(id);
+    setDeleteDialogOpen(true);
+  };
 
+  const confirmDelete = async () => {
+    setIsDeleting(true);
     try {
-      const res = await fetch(`/api/trades/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete trade");
+      if (tradeToDelete) {
+        // Single delete
+        const res = await fetch(`/api/trades/${tradeToDelete}`, { method: "DELETE" });
+        if (!res.ok) throw new Error("Failed to delete trade");
 
-      setTrades((prev) => prev.filter((t) => t._id !== id));
-      setSyncMessage({ type: "success", text: "Trade deleted successfully" });
+        setTrades((prev) => prev.filter((t) => t._id !== tradeToDelete));
+        setSelectedTrades((prev) => prev.filter((tid) => tid !== tradeToDelete));
+        setSyncMessage({ type: "success", text: "Trade deleted successfully" });
+      } else if (selectedTrades.length > 0) {
+        // Bulk delete
+        const res = await fetch("/api/trades/bulk-delete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: selectedTrades }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        setTrades((prev) => prev.filter((t) => !selectedTrades.includes(t._id)));
+        setSelectedTrades([]);
+        setSyncMessage({ type: "success", text: `Successfully deleted ${data.deletedCount} trades` });
+      }
       setTimeout(() => setSyncMessage(null), 3000);
-    } catch (err) {
-      setSyncMessage({ type: "error", text: "Failed to delete trade" });
+      setDeleteDialogOpen(false);
+      setTradeToDelete(null);
+    } catch (err: any) {
+      setSyncMessage({ type: "error", text: err.message || "Failed to delete trade" });
       setTimeout(() => setSyncMessage(null), 3000);
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const handleBulkDeleteClick = () => {
+    if (!selectedTrades.length) return;
+    setTradeToDelete(null); // Ensure we are in bulk mode
+    setDeleteDialogOpen(true);
+  };
+
+
+
+  const toggleSelectAll = () => {
+    if (selectedTrades.length === visibleTrades.length && visibleTrades.length > 0) {
+      setSelectedTrades([]);
+    } else {
+      setSelectedTrades(visibleTrades.map(t => t._id));
+    }
+  };
+
+  const toggleSelectTrade = (id: string) => {
+    setSelectedTrades(prev =>
+      prev.includes(id)
+        ? prev.filter(tid => tid !== id)
+        : [...prev, id]
+    );
   };
 
   const formatDate = (dateStr: string) => {
@@ -187,6 +248,17 @@ export default function TradesPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {selectedTrades.length > 0 && (
+            <Button
+              variant="destructive"
+              onClick={handleBulkDeleteClick}
+              disabled={isDeleting}
+              className="rounded-xl h-10 px-4 gap-2 animate-in fade-in zoom-in duration-200"
+            >
+              {isDeleting && !tradeToDelete ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Delete ({selectedTrades.length})
+            </Button>
+          )}
           {/* ... buttons ... */}
           <Button
             onClick={handleDhanSync}
@@ -210,7 +282,7 @@ export default function TradesPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Net P&L */}
-        <Card className="p-4 glass-card bg-gradient-to-br from-background to-muted/20">
+        <Card className="p-4 glass-card bg-linear-to-br from-background to-muted/20">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Net P&L</p>
           <div className={cn("mt-2 text-2xl font-bold", netPnl >= 0 ? "text-emerald-500" : "text-rose-500")}>
             {netPnl >= 0 ? "+" : ""}₹{netPnl.toLocaleString("en-IN")}
@@ -219,7 +291,7 @@ export default function TradesPage() {
         </Card>
 
         {/* Brokerage */}
-        <Card className="p-4 glass-card bg-gradient-to-br from-background to-muted/20">
+        <Card className="p-4 glass-card bg-linear-to-br from-background to-muted/20">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Charges</p>
           <div className="mt-2 text-2xl font-bold text-amber-500">
             ₹{totalBrokerage.toLocaleString("en-IN")}
@@ -228,14 +300,14 @@ export default function TradesPage() {
         </Card>
 
         {/* Total Trades */}
-        <Card className="p-4 glass-card bg-gradient-to-br from-background to-muted/20">
+        <Card className="p-4 glass-card bg-linear-to-br from-background to-muted/20">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Trades</p>
           <div className="mt-2 text-2xl font-bold text-foreground">{filteredTrades.length}</div>
           <p className="text-[10px] text-muted-foreground mt-1">{winCount} Wins • {lossCount} Losses</p>
         </Card>
 
         {/* Gross P&L */}
-        <Card className="p-4 glass-card bg-gradient-to-br from-background to-muted/20">
+        <Card className="p-4 glass-card bg-linear-to-br from-background to-muted/20">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Gross P&L</p>
           <div className={cn("mt-2 text-2xl font-bold", totalPnl >= 0 ? "text-emerald-500/80" : "text-rose-500/80")}>
             {totalPnl >= 0 ? "+" : ""}₹{totalPnl.toLocaleString("en-IN")}
@@ -372,6 +444,13 @@ export default function TradesPage() {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent border-b border-border">
+                <TableHead className="w-[50px]">
+                  <Checkbox
+                    checked={visibleTrades.length > 0 && selectedTrades.length === visibleTrades.length}
+                    onCheckedChange={toggleSelectAll}
+                    aria-label="Select all"
+                  />
+                </TableHead>
                 <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Date</TableHead>
                 <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Symbol</TableHead>
                 <TableHead className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Direction</TableHead>
@@ -389,9 +468,19 @@ export default function TradesPage() {
               {visibleTrades.map((trade) => (
                 <TableRow
                   key={trade._id}
-                  className="cursor-pointer hover:bg-muted/30 transition-colors border-b border-border/50 group"
+                  className={cn(
+                    "cursor-pointer transition-colors border-b border-border/50 group",
+                    selectedTrades.includes(trade._id) ? "bg-muted/50 hover:bg-muted/60" : "hover:bg-muted/30"
+                  )}
                   onClick={() => setSelectedTrade(trade)}
                 >
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedTrades.includes(trade._id)}
+                      onCheckedChange={() => toggleSelectTrade(trade._id)}
+                      aria-label="Select trade"
+                    />
+                  </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{formatDate(trade.date)}</TableCell>
 
                   <TableCell>
@@ -482,7 +571,7 @@ export default function TradesPage() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
-                        onClick={(e) => handleDelete(trade._id, e)}
+                        onClick={(e) => handleDeleteClick(trade._id, e)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
@@ -525,6 +614,14 @@ export default function TradesPage() {
         open={isAddTradeOpen}
         onOpenChange={setIsAddTradeOpen}
         tradeToEdit={tradeToEdit}
+      />
+
+      <DeleteTradeDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={confirmDelete}
+        isDeleting={isDeleting}
+        count={tradeToDelete ? 1 : selectedTrades.length}
       />
     </div>
   );

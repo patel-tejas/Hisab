@@ -106,7 +106,12 @@ function StatCard({ label, value, sub, icon: Icon, color }: { label: string; val
 // ─── Helper: apply symbol/direction filters to trades ───
 function applyFilters(trades: Trade[], symbolFilter: string, dirFilter: string): Trade[] {
   let result = trades;
-  if (symbolFilter !== "all") result = result.filter((t) => t.symbol === symbolFilter);
+  if (symbolFilter !== "all") {
+    result = result.filter((t) => {
+      const clean = t.symbol.split("-")[0].trim();
+      return clean === symbolFilter;
+    });
+  }
   if (dirFilter !== "all") result = result.filter((t) => t.type === dirFilter);
   return result;
 }
@@ -155,8 +160,9 @@ export default function ReportsPage() {
   }, [trades, range]);
 
   // ── UNIQUE SYMBOLS ──
+  /* ── UNIQUE SYMBOLS (Aggregated) ── */
   const uniqueSymbols = useMemo(() => {
-    const s = new Set(filteredTrades.map((t) => t.symbol));
+    const s = new Set(filteredTrades.map((t) => t.symbol.split("-")[0].trim()));
     return Array.from(s).sort();
   }, [filteredTrades]);
 
@@ -223,8 +229,9 @@ export default function ReportsPage() {
     const src = applyFilters(filteredTrades, "all", symbolDir);
     const map: Record<string, { pnl: number; count: number; wins: number }> = {};
     src.forEach((t) => {
-      if (!map[t.symbol]) map[t.symbol] = { pnl: 0, count: 0, wins: 0 };
-      map[t.symbol].pnl += t.pnl; map[t.symbol].count += 1; if (t.pnl > 0) map[t.symbol].wins += 1;
+      const clean = t.symbol.split("-")[0].trim();
+      if (!map[clean]) map[clean] = { pnl: 0, count: 0, wins: 0 };
+      map[clean].pnl += t.pnl; map[clean].count += 1; if (t.pnl > 0) map[clean].wins += 1;
     });
     return Object.entries(map).map(([symbol, d]) => ({ symbol, pnl: d.pnl, count: d.count, winRate: Math.round((d.wins / d.count) * 100) })).sort((a, b) => b.pnl - a.pnl);
   }, [filteredTrades, symbolDir]);
