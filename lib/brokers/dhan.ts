@@ -66,6 +66,42 @@ export async function fetchDhanTrades(accessToken: string): Promise<DhanRawTrade
 
 /* ──────────────────── Pair BUY+SELL into trades ──────────────────── */
 /* ──────────────────── Pair BUY+SELL into trades (FIFO) ──────────────────── */
+export const MCX_MULTIPLIERS: Record<string, number> = {
+    "SILVERM": 5,
+    "SILVER": 30,
+    "GOLD": 100,
+    "GOLDM": 10,
+    "CRUDEOIL": 100,
+    "NATGAS": 1250,
+    "COPPER": 2500,
+    "ZINC": 5000,
+    "LEAD": 5000,
+    "ALUMINIUM": 5000
+};
+
+export function getSymbolMultiplier(symbol: string): number {
+    if (!symbol) return 1;
+
+    // Normalize symbol: uppercase
+    const s = symbol.toUpperCase();
+
+    // Check for keys in MCX_MULTIPLIERS
+    // We sort keys by length descending to ensure "SILVERM" is matched before "SILVER"
+    const keys = Object.keys(MCX_MULTIPLIERS).sort((a, b) => b.length - a.length);
+
+    for (const key of keys) {
+        // We assume the symbol starts with the key, followed by a non-letter char (space, hyphen, digit)
+        // or it IS the key.
+        // Regex: ^KEY(\W|\d|$)
+        const regex = new RegExp(`^${key}([^A-Z]|$)`);
+        if (regex.test(s)) {
+            return MCX_MULTIPLIERS[key];
+        }
+    }
+
+    return 1;
+}
+
 export function pairTrades(rawTrades: DhanRawTrade[]): PairedTrade[] {
     // Group by symbol
     const bySymbol = new Map<string, DhanRawTrade[]>();
@@ -109,10 +145,14 @@ export function pairTrades(rawTrades: DhanRawTrade[]): PairedTrade[] {
                 const exitPrice = exit.tradedPrice;
                 const qty = matchQty;
 
+                // Apply Multiplier for MCX
+                const multiplier = getSymbolMultiplier(entry.tradingSymbol);
+
                 const pnl = isLong
-                    ? (exitPrice - entryPrice) * qty
-                    : (entryPrice - exitPrice) * qty;
-                const totalAmount = entryPrice * qty;
+                    ? (exitPrice - entryPrice) * qty * multiplier
+                    : (entryPrice - exitPrice) * qty * multiplier;
+
+                const totalAmount = entryPrice * qty * multiplier;
                 const pnlPercent = totalAmount > 0 ? (pnl / totalAmount) * 100 : 0;
 
                 const entryDate = new Date(entry.createTime);
