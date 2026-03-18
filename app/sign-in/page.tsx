@@ -55,7 +55,44 @@ export default function SignInPage() {
         <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-violet-500/10 blur-[130px] animate-pulse"></div>
       </div>
 
-      <div className="w-full max-w-md relative z-10 space-y-5">
+      {/* Demo Credentials Card — Top Right */}
+      <div className="absolute top-6 right-6 z-20 max-w-xs border border-amber-500/30 bg-amber-500/5 rounded-2xl p-4 backdrop-blur-sm animate-in fade-in slide-in-from-right-4 duration-700 delay-200">
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500">
+            <FlaskConical className="h-4 w-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              Try the Demo Account
+              <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-500 px-1.5 py-0.5 rounded-full">
+                Free
+              </span>
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              No sign-up required. Explore a pre-filled demo.
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground font-mono">
+              <span>
+                User: <span className="text-foreground font-semibold">{DEMO_USERNAME}</span>
+              </span>
+              <span>
+                Pass: <span className="text-foreground font-semibold">{DEMO_PASSWORD}</span>
+              </span>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              onClick={fillDemoCredentials}
+              className="mt-2.5 h-7 px-3 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold shadow-md shadow-amber-500/20 transition-all hover:scale-105"
+            >
+              <Zap className="h-3 w-3 mr-1.5" />
+              Use Demo Credentials
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="w-full max-w-md relative z-10">
         {/* Sign In Card */}
         <div className="border border-border/30 rounded-2xl p-8 glass-card shadow-2xl animate-in fade-in zoom-in-95 duration-500">
           <div className="flex flex-col items-center mb-8">
@@ -118,43 +155,6 @@ export default function SignInPage() {
                 Create Account
               </Link>
             </p>
-          </div>
-        </div>
-
-        {/* Demo Credentials Card */}
-        <div className="border border-amber-500/30 bg-amber-500/5 rounded-2xl p-5 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-          <div className="flex items-start gap-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500">
-              <FlaskConical className="h-5 w-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                Try the Demo Account
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-500 px-1.5 py-0.5 rounded-full">
-                  Free
-                </span>
-              </h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                Explore Hisaab with a pre-filled account — no sign-up needed.
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground font-mono">
-                <span>
-                  User: <span className="text-foreground font-semibold">{DEMO_USERNAME}</span>
-                </span>
-                <span>
-                  Pass: <span className="text-foreground font-semibold">{DEMO_PASSWORD}</span>
-                </span>
-              </div>
-              <Button
-                type="button"
-                size="sm"
-                onClick={fillDemoCredentials}
-                className="mt-3 h-8 px-4 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold shadow-md shadow-amber-500/20 transition-all hover:scale-105"
-              >
-                <Zap className="h-3.5 w-3.5 mr-1.5" />
-                Use Demo Credentials
-              </Button>
-            </div>
           </div>
         </div>
       </div>
