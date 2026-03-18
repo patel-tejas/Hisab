@@ -104,6 +104,101 @@ export default function LandingPage() {
       </section>
 
       {/* ═══════════════════════════════════════
+          DHAN INTEGRATION SECTION
+      ═══════════════════════════════════════ */}
+      <section className="px-4 py-24 sm:px-6 lg:px-8 relative z-10">
+        <div className="mx-auto max-w-5xl">
+          <div className="relative rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 via-teal-500/5 to-cyan-500/5 p-1 shadow-2xl shadow-emerald-500/10">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-20">
+              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-4 py-1.5 text-xs font-bold text-white shadow-lg shadow-emerald-500/30">
+                <Zap className="h-3.5 w-3.5 fill-current" />
+                NEW INTEGRATION
+              </span>
+            </div>
+            <div className="rounded-[1.25rem] bg-card/60 backdrop-blur-xl p-8 sm:p-12">
+              <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+                {/* Left: Logo & Visual */}
+                <div className="flex-shrink-0 relative">
+                  <div className="relative h-32 w-32 sm:h-40 sm:w-40 rounded-2xl bg-white shadow-xl shadow-emerald-500/10 p-4 flex items-center justify-center ring-1 ring-border group hover:shadow-emerald-500/20 transition-shadow">
+                    <img
+                      src="/dhan_logo.jpg"
+                      alt="Dhan Logo"
+                      className="w-full h-full object-contain rounded-lg"
+                    />
+                    <div className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg">
+                      <CheckCircle2 className="h-5 w-5 text-white" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Content */}
+                <div className="flex-1 text-center lg:text-left">
+                  <h2 className="text-3xl sm:text-4xl font-bold text-foreground leading-tight">
+                    Now Integrated with{" "}
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">
+                      Dhan
+                    </span>
+                  </h2>
+                  <p className="mt-4 text-muted-foreground text-lg leading-relaxed max-w-xl">
+                    Import your trades directly from your Dhan account. No more manual entries — your entire
+                    trading history, synced automatically.
+                  </p>
+
+                  <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {[
+                      {
+                        icon: Zap,
+                        title: "One-Click Sync",
+                        desc: "Connect and import all your trades instantly",
+                      },
+                      {
+                        icon: BarChart3,
+                        title: "Auto Import",
+                        desc: "Trades are fetched directly from Dhan",
+                      },
+                      {
+                        icon: TrendingUp,
+                        title: "Real-Time Tracking",
+                        desc: "Your journal stays up to date, always",
+                      },
+                    ].map((item) => (
+                      <div
+                        key={item.title}
+                        className="flex flex-col items-center lg:items-start gap-2 rounded-xl bg-muted/40 border border-border p-4 hover:bg-muted/60 transition-colors"
+                      >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+                          <item.icon className="h-5 w-5" />
+                        </div>
+                        <h4 className="text-sm font-semibold text-foreground">{item.title}</h4>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-8 flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
+                    <Button
+                      size="lg"
+                      className="h-12 px-8 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 transition-all hover:scale-105 font-semibold"
+                      asChild
+                    >
+                      <Link href="/dashboard">
+                        Connect Dhan Account
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <Shield className="h-3.5 w-3.5" />
+                      Secure OAuth connection — we never store your credentials
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════
           FEATURES SECTION
       ═══════════════════════════════════════ */}
       <section id="features" className="px-4 py-24 sm:px-6 lg:px-8 relative z-10">

@@ -29,6 +29,7 @@ export default function SettingsPage() {
         setProfileMessage(null)
 
         const formData = new FormData(e.currentTarget)
+        const username = formData.get("username")
         const name = formData.get("name")
         const email = formData.get("email")
 
@@ -36,7 +37,7 @@ export default function SettingsPage() {
             const res = await fetch("/api/user/profile", {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, email }),
+                body: JSON.stringify({ username, name, email }),
             })
 
             const data = await res.json()
@@ -104,6 +105,17 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmitProfile} className="space-y-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="username">Username</Label>
+                            <Input
+                                key={`username-${inputKey}`}
+                                id="username"
+                                name="username"
+                                defaultValue={user?.username || ""}
+                                placeholder="Enter your username"
+                                required
+                            />
+                        </div>
                         <div className="grid gap-2">
                             <Label htmlFor="name">Full Name</Label>
                             <Input

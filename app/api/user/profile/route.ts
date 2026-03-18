@@ -6,10 +6,14 @@ import mongoose from "mongoose";
 
 export async function PUT(req: Request) {
     try {
-        const { name, email } = await req.json();
+        const { username, name, email } = await req.json();
 
         if (!name || !email) {
             return NextResponse.json({ error: "Name and email are required" }, { status: 400 });
+        }
+
+        if (!username || typeof username !== "string" || username.trim().length < 3) {
+            return NextResponse.json({ error: "Username must be at least 3 characters" }, { status: 400 });
         }
 
         // Basic email validation
@@ -37,10 +41,19 @@ export async function PUT(req: Request) {
             }
         }
 
+        // Check username uniqueness if changed
+        const trimmedUsername = username.trim();
+        if (trimmedUsername !== currentUser.username) {
+            const existingUsername = await usersCollection.findOne({ username: trimmedUsername });
+            if (existingUsername) {
+                return NextResponse.json({ error: "Username already taken" }, { status: 400 });
+            }
+        }
+
         // Native Update
         await usersCollection.updateOne(
             { _id: new mongoose.Types.ObjectId(userData.id) },
-            { $set: { name, email } }
+            { $set: { username: trimmedUsername, name, email } }
         );
 
         return NextResponse.json({
@@ -50,7 +63,7 @@ export async function PUT(req: Request) {
                 id: currentUser._id,
                 name: name,
                 email: email,
-                username: currentUser.username,
+                username: trimmedUsername,
                 initials: name ? name.charAt(0).toUpperCase() : "U"
             }
         });
