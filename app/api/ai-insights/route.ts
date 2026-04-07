@@ -1,20 +1,20 @@
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { Groq } from "groq-sdk";
 import { db } from "@/lib/db";
 import Trade from "@/models/Trade";
 import { verifyUser } from "@/lib/verifyUser";
 
 export async function GET(req: Request) {
     try {
-        const apiKey = (process.env.GEMINI_API_KEY || "").trim();
+        const apiKey = (process.env.GROQ_API_KEY || "").trim();
         if (!apiKey) {
             return NextResponse.json(
-                { error: "GEMINI_API_KEY is not set in .env" },
+                { error: "GROQ_API_KEY is not set in .env" },
                 { status: 500 }
             );
         }
 
-        const genAI = new GoogleGenerativeAI(apiKey);
+        const groq = new Groq({ apiKey });
 
         await db();
 
@@ -423,14 +423,16 @@ CRITICAL INSTRUCTIONS:
             "\n\nReturn ONLY valid JSON (no markdown, no code blocks) matching this structure:\n" +
             jsonStructure;
 
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text().trim();
+        const result = await groq.chat.completions.create({
+            messages: [{ role: "user", content: prompt }],
+            model: "llama-3.3-70b-versatile",
+            response_format: { type: "json_object" },
+        });
+        const responseText = result.choices[0]?.message?.content?.trim() || "{}";
 
         let parsed;
         try {
-            const cleaned = responseText.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-            parsed = JSON.parse(cleaned);
+            parsed = JSON.parse(responseText);
         } catch {
             return NextResponse.json({
                 ready: true,

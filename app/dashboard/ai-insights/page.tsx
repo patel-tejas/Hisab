@@ -406,7 +406,7 @@ export default function AiInsightsPage() {
                     <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-2 flex items-center gap-3">
                         <Brain className="h-8 w-8 text-violet-400" /> AI Trading Coach
                     </h1>
-                    <p className="text-muted-foreground">Deep performance analysis powered by Gemini AI</p>
+                    <p className="text-muted-foreground">Deep performance analysis powered by Groq Llama AI</p>
                 </div>
                 <Card className="glass-card relative overflow-hidden">
                     <div className="absolute inset-0">

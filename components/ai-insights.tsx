@@ -113,7 +113,7 @@ export function AiInsights() {
                         <div>
                             <h3 className="font-semibold text-foreground text-lg">AI Trading Coach</h3>
                             <p className="text-sm text-muted-foreground">
-                                Get personalized insights powered by Gemini AI
+                                Get personalized insights powered by Groq Llama AI
                             </p>
                         </div>
                     </div>
@@ -187,7 +187,7 @@ export function AiInsights() {
                                 </span>
                             )}
                         </div>
-                        <p className="text-xs text-muted-foreground">Powered by Gemini AI</p>
+                        <p className="text-xs text-muted-foreground">Powered by Groq Llama AI</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
